@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     FlatList,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -14,63 +16,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactions } from "../context/TransactionContext";
 
-// Daftar kategori pilihan
-const categoriesData = {
-  expense: [
-    {
-      name: "Makan",
-      icon: "restaurant-outline",
-      color: "#0097A7",
-      bg: "#E0F7FA",
-    },
-    {
-      name: "Transportasi",
-      icon: "bus-outline",
-      color: "#F57C00",
-      bg: "#FFF3E0",
-    },
-    { name: "Kuliah", icon: "school-outline", color: "#388E3C", bg: "#E8F5E9" },
-    { name: "Belanja", icon: "cart-outline", color: "#E91E63", bg: "#FCE4EC" },
-    {
-      name: "Hiburan",
-      icon: "game-controller-outline",
-      color: "#673AB7",
-      bg: "#EDE7F6",
-    },
-    {
-      name: "Kesehatan",
-      icon: "medical-outline",
-      color: "#F44336",
-      bg: "#FFEBEE",
-    },
-    {
-      name: "Lainnya",
-      icon: "ellipsis-horizontal-outline",
-      color: "#757575",
-      bg: "#EEEEEE",
-    },
-  ],
-  income: [
-    { name: "Gaji", icon: "wallet-outline", color: "#2E7D32", bg: "#E8F5E9" },
-    { name: "Bonus", icon: "gift-outline", color: "#F9A825", bg: "#FFF9C4" },
-    {
-      name: "Investasi",
-      icon: "trending-up-outline",
-      color: "#1565C0",
-      bg: "#E3F2FD",
-    },
-    {
-      name: "Lainnya",
-      icon: "ellipsis-horizontal-outline",
-      color: "#757575",
-      bg: "#EEEEEE",
-    },
-  ],
-};
-
 export default function AddTransactionScreen() {
   const router = useRouter();
-  const { addTransaction } = useTransactions();
+  const { addTransaction, categories } = useTransactions();
 
   const [type, setType] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
@@ -80,14 +28,25 @@ export default function AddTransactionScreen() {
   const [selectedCategory, setSelectedCategory] = useState("Makan");
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Tanggal hari ini format YYYY-MM-DD atau teks ramah
-  const todayString = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(todayString);
+  // State untuk Tanggal & Kalender Interaktif
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Ganti kategori default otomatis saat tipe tab (Pengeluaran/Pemasukan) berubah
   const handleTabChange = (newType: "expense" | "income") => {
     setType(newType);
-    setSelectedCategory(newType === "expense" ? "Makan" : "Gaji");
+    const availableCats = categories.filter((c) => c.type === newType);
+    if (availableCats.length > 0) {
+      setSelectedCategory(availableCats[0].name);
+    }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
   };
 
   const handleSave = () => {
@@ -100,7 +59,7 @@ export default function AddTransactionScreen() {
       type: type,
       amount: parseInt(amount.replace(/[^0-9]/g, "")) || 0,
       category: selectedCategory,
-      date: new Date().toISOString(),
+      date: date.toISOString(),
       note: note,
     });
 
@@ -108,11 +67,22 @@ export default function AddTransactionScreen() {
     router.back();
   };
 
-  // Mencari ikon untuk kategori yang sedang dipilih
-  const currentCategories = categoriesData[type];
-  const activeCatObj =
-    currentCategories.find((c) => c.name === selectedCategory) ||
-    currentCategories[0];
+  const currentCategories = categories.filter((c) => c.type === type);
+  const activeCatObj = currentCategories.find(
+    (c) => c.name === selectedCategory,
+  ) ||
+    currentCategories[0] || {
+      name: "",
+      icon: "pricetag-outline",
+      color: "#757575",
+      bg: "#EEEEEE",
+    };
+
+  const formattedDateString = date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -177,7 +147,7 @@ export default function AddTransactionScreen() {
           </View>
         </View>
 
-        {/* Kategori (Interaktif / Membuka Modal) */}
+        {/* Kategori */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Kategori</Text>
           <TouchableOpacity
@@ -203,21 +173,32 @@ export default function AddTransactionScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tanggal */}
+        {/* Tanggal Interaktif */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Tanggal</Text>
-          <View style={styles.dropdownBox}>
+          <TouchableOpacity
+            style={styles.dropdownBox}
+            onPress={() => setShowDatePicker(true)}
+          >
             <View style={styles.dropdownLeft}>
               <Ionicons name="calendar-outline" size={20} color="#757575" />
-              <TextInput
-                style={[styles.dropdownText, { flex: 1, padding: 0 }]}
-                value={date}
-                onChangeText={setDate}
-                placeholder="YYYY-MM-DD"
-              />
+              <Text style={[styles.dropdownText, { marginLeft: 12 }]}>
+                {formattedDateString}
+              </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-down" size={20} color="#757575" />
+          </TouchableOpacity>
         </View>
+
+        {/* Tampil Komponen Tanggal */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )}
 
         {/* Catatan */}
         <View style={styles.inputGroup}>
@@ -245,8 +226,17 @@ export default function AddTransactionScreen() {
         animationType="slide"
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        {/* 1. Ubah View overlay menjadi TouchableOpacity */}
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsModalVisible(false)}
+        >
+          {/* 2. Tambahkan onStartShouldSetResponder di dalam modalContent */}
+          <View
+            style={styles.modalContent}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pilih Kategori</Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
@@ -256,7 +246,7 @@ export default function AddTransactionScreen() {
 
             <FlatList
               data={currentCategories}
-              keyExtractor={(item) => item.name}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.modalItem}
@@ -282,7 +272,7 @@ export default function AddTransactionScreen() {
               )}
             />
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -349,13 +339,14 @@ const styles = StyleSheet.create({
     height: 56,
   },
   dropdownLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
-  dropdownText: { fontSize: 15, color: "#212121", marginLeft: 12 },
+  dropdownText: { fontSize: 15, color: "#212121" },
   smallIconBg: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 12,
   },
   textArea: {
     backgroundColor: "#FFFFFF",

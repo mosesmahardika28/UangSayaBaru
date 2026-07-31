@@ -1,9 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import {
+    FlatList,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -17,43 +20,82 @@ const colors = {
   textMuted: "#757575",
   primary: "#43A047",
   border: "#EEEEEE",
+  danger: "#E53935",
 };
 
-// Pemetaan ikon untuk kategori
-const categoryIcons: {
-  [key: string]: { icon: string; color: string; bg: string };
-} = {
-  Makan: { icon: "restaurant", color: "#0097A7", bg: "#E0F7FA" },
-  Transportasi: { icon: "bus", color: "#F57C00", bg: "#FFF3E0" },
-  Kuliah: { icon: "school", color: "#388E3C", bg: "#E8F5E9" },
-  Belanja: { icon: "cart", color: "#E91E63", bg: "#FCE4EC" },
-  Hiburan: { icon: "game-controller", color: "#673AB7", bg: "#EDE7F6" },
-  Kesehatan: { icon: "medical", color: "#F44336", bg: "#FFEBEE" },
-  Lainnya: { icon: "ellipsis-horizontal", color: "#757575", bg: "#EEEEEE" },
-};
+const monthsNames = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
 export default function StatistikScreen() {
-  const { transactions } = useTransactions();
+  const { transactions, categories, monthlyBudget, setMonthlyBudget } =
+    useTransactions();
 
-  // Ambil hanya transaksi pengeluaran (expense)
-  const expenseTransactions = transactions.filter((t) => t.type === "expense");
+  const currentDate = new Date();
+  // selectedMonth bisa berupa angka (0-11) atau string "all" untuk semua bulan
+  const [selectedMonth, setSelectedMonth] = useState<number | "all">(
+    currentDate.getMonth(),
+  );
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Total pengeluaran
-  const totalExpense = expenseTransactions.reduce(
+  // State untuk Modal Ubah Anggaran
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  const [inputBudget, setInputBudget] = useState(monthlyBudget.toString());
+
+  // Pemetaan ikon kategori secara dinamis
+  const categoryIcons: {
+    [key: string]: { icon: string; color: string; bg: string };
+  } = {};
+  categories.forEach((c) => {
+    categoryIcons[c.name] = {
+      icon: c.icon.replace("-outline", ""),
+      color: c.color,
+      bg: c.bg,
+    };
+  });
+
+  // Filter transaksi berdasarkan pilihan bulan ("all" atau indeks bulan 0-11)
+  const filteredTransactions = transactions.filter((t) => {
+    const tDate = new Date(t.date);
+    const matchesYear = tDate.getFullYear() === selectedYear;
+
+    if (selectedMonth === "all") {
+      return t.type === "expense" && matchesYear;
+    }
+    return (
+      t.type === "expense" && tDate.getMonth() === selectedMonth && matchesYear
+    );
+  });
+
+  const totalExpense = filteredTransactions.reduce(
     (sum, t) => sum + t.amount,
     0,
   );
+  const budgetPercentage =
+    monthlyBudget > 0
+      ? Math.min(Math.round((totalExpense / monthlyBudget) * 100), 100)
+      : 0;
 
-  // Mengelompokkan pengeluaran berdasarkan kategori secara dinamis
   const categoryMap: { [key: string]: number } = {};
-  expenseTransactions.forEach((t) => {
+  filteredTransactions.forEach((t) => {
     if (!categoryMap[t.category]) {
       categoryMap[t.category] = 0;
     }
     categoryMap[t.category] += t.amount;
   });
 
-  // Ubah object ke array untuk di-mapping
   const categoryStats = Object.keys(categoryMap).map((cat) => ({
     name: cat,
     amount: categoryMap[cat],
@@ -67,21 +109,92 @@ export default function StatistikScreen() {
     return "Rp " + angka.toLocaleString("id-ID");
   };
 
+  const handleSaveBudget = () => {
+    const parsed = parseInt(inputBudget.replace(/[^0-9]/g, "")) || 0;
+    setMonthlyBudget(parsed);
+    setBudgetModalVisible(false);
+    alert("Target anggaran berhasil diperbarui!");
+  };
+
+  // Label teks yang tampil di tombol pemilih bulan
+  const displayText =
+    selectedMonth === "all"
+      ? `Semua Bulan ${selectedYear}`
+      : `${monthsNames[selectedMonth as number]} ${selectedYear}`;
+
+  // Daftar opsi untuk modal (menambahkan "Semua Bulan" di urutan paling atas)
+  const modalOptions = [
+    { label: `Semua`, value: "all" },
+    ...monthsNames.map((m, index) => ({
+      label: `${m} ${selectedYear}`,
+      value: index,
+    })),
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Statistik</Text>
-        <TouchableOpacity style={styles.monthSelector}>
-          <Text style={styles.monthText}>Bulan Ini</Text>
+        <Text style={styles.headerTitle}>Statistik & Anggaran</Text>
+        <TouchableOpacity
+          style={styles.monthSelector}
+          onPress={() => setIsModalVisible(true)}
+        >
+          <Text style={styles.monthText}>{displayText}</Text>
           <Ionicons name="chevron-down" size={16} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Total Pengeluaran */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Total Pengeluaran</Text>
-          <Text style={styles.summaryAmount}>{formatRp(totalExpense)}</Text>
+        {/* Kartu Target Anggaran */}
+        <View style={styles.budgetCard}>
+          <View style={styles.budgetHeader}>
+            <View>
+              <Text style={styles.budgetLabel}>
+                Target Anggaran (
+                {selectedMonth === "all" ? "Tahunan" : "Bulan Ini"})
+              </Text>
+              <Text style={styles.budgetAmount}>{formatRp(monthlyBudget)}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.editBudgetBtn}
+              onPress={() => {
+                setInputBudget(monthlyBudget.toString());
+                setBudgetModalVisible(true);
+              }}
+            >
+              <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.budgetProgressInfo}>
+            <Text style={styles.budgetSpentText}>
+              Terpakai:{" "}
+              <Text style={{ fontWeight: "bold" }}>
+                {formatRp(totalExpense)}
+              </Text>
+            </Text>
+            <Text
+              style={[
+                styles.budgetSpentText,
+                { color: totalExpense > monthlyBudget ? "#FFCDD2" : "#FFFFFF" },
+              ]}
+            >
+              {budgetPercentage}%
+            </Text>
+          </View>
+
+          <View style={styles.progressBg}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${budgetPercentage}%`,
+                  backgroundColor:
+                    totalExpense > monthlyBudget ? "#FF5252" : "#FFFFFF",
+                },
+              ]}
+            />
+          </View>
         </View>
 
         {/* Rincian Kategori Dinamis */}
@@ -95,7 +208,7 @@ export default function StatistikScreen() {
               color={colors.border}
             />
             <Text style={styles.emptyStateText}>
-              Belum ada data pengeluaran
+              Tidak ada pengeluaran pada periode ini
             </Text>
           </View>
         ) : (
@@ -125,10 +238,10 @@ export default function StatistikScreen() {
                     {formatRp(item.amount)} ({item.percentage}%)
                   </Text>
                 </View>
-                <View style={styles.progressBg}>
+                <View style={styles.subProgressBg}>
                   <View
                     style={[
-                      styles.progressFill,
+                      styles.subProgressFill,
                       {
                         width: `${item.percentage}%`,
                         backgroundColor: catInfo.color,
@@ -143,6 +256,110 @@ export default function StatistikScreen() {
 
         <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* Modal Pilihan Bulan (Dilengkapi area klik luar untuk menutup) */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsModalVisible(false)}
+        >
+          <View
+            style={styles.modalContent}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Pilih Periode</Text>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMain} />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={modalOptions}
+              keyExtractor={(item) => item.value.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    selectedMonth === item.value && styles.modalItemActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedMonth(item.value as any);
+                    setIsModalVisible(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      selectedMonth === item.value &&
+                        styles.modalItemTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                  {selectedMonth === item.value && (
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Atur Target Anggaran (Dilengkapi area klik luar untuk menutup) */}
+      <Modal
+        visible={budgetModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setBudgetModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setBudgetModalVisible(false)}
+        >
+          <View
+            style={styles.modalContent}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Atur Target Anggaran</Text>
+              <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMain} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Batas Maksimal Pengeluaran (Rp)</Text>
+              <TextInput
+                style={styles.input}
+                value={inputBudget}
+                onChangeText={setInputBudget}
+                keyboardType="numeric"
+                placeholder="Contoh: 1500000"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSaveBudget}
+            >
+              <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -170,23 +387,46 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: "600",
     marginRight: 4,
-    fontSize: 14,
+    fontSize: 13,
   },
   container: { padding: 20 },
-  summaryCard: {
+  budgetCard: {
     backgroundColor: colors.primary,
     padding: 20,
     borderRadius: 16,
-    alignItems: "center",
     marginBottom: 24,
   },
-  summaryLabel: {
+  budgetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 15,
+  },
+  budgetLabel: {
     color: "#FFFFFF",
     fontSize: 14,
     opacity: 0.9,
-    marginBottom: 5,
+    marginBottom: 4,
   },
-  summaryAmount: { color: "#FFFFFF", fontSize: 28, fontWeight: "bold" },
+  budgetAmount: { color: "#FFFFFF", fontSize: 24, fontWeight: "bold" },
+  editBudgetBtn: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    padding: 8,
+    borderRadius: 10,
+  },
+  budgetProgressInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  budgetSpentText: { color: "#FFFFFF", fontSize: 13 },
+  progressBg: {
+    height: 8,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: { height: "100%", borderRadius: 4 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -218,13 +458,74 @@ const styles = StyleSheet.create({
   },
   categoryName: { fontSize: 15, fontWeight: "600", color: colors.textMain },
   categoryAmount: { fontSize: 14, fontWeight: "bold", color: colors.textMain },
-  progressBg: {
+  subProgressBg: {
     height: 8,
     backgroundColor: colors.border,
     borderRadius: 4,
     overflow: "hidden",
   },
-  progressFill: { height: "100%", borderRadius: 4 },
-  emptyState: { alignItems: "center", justifyContent: "center", marginTop: 30 },
+  subProgressFill: { height: "100%", borderRadius: 4 },
+  emptyState: { alignItems: "center", justifyContent: "center", marginTop: 20 },
   emptyStateText: { marginTop: 10, fontSize: 15, color: colors.textMuted },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "60%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+    paddingBottom: 10,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+    borderRadius: 8,
+  },
+  modalItemActive: { backgroundColor: "#E8F5E9" },
+  modalItemText: { fontSize: 16, color: colors.textMain },
+  modalItemTextActive: { color: colors.primary, fontWeight: "bold" },
+  inputGroup: { marginBottom: 16 },
+  label: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: 6,
+    fontWeight: "500",
+  },
+  input: {
+    backgroundColor: "#FAFAFA",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    fontSize: 15,
+    color: colors.textMain,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  saveButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
 });

@@ -5,6 +5,9 @@
     "version": "1.0.0",
     "scheme": "uangsaya",
     "orientation": "portrait",
-    "userInterfaceStyle": "light"
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }
