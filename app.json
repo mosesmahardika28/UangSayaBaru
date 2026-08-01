@@ -8,6 +8,14 @@
     "userInterfaceStyle": "light",
     "plugins": [
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6ac6aff4-7be9-4a96-9a85-f93fee97fcd2"
+      }
+    },
+    "android": {
+      "package": "com.mosesmahardika.UangSaya"
+    }
   }
 }
