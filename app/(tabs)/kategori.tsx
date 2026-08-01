@@ -1,172 +1,175 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    CategoryItem,
-    useTransactions,
+  CategoryItem,
+  useTransactions,
 } from "../../context/TransactionContext";
 
 const colors = {
   background: "#FAFAFA",
   card: "#FFFFFF",
+  primary: "#43A047",
   textMain: "#212121",
   textMuted: "#757575",
-  primary: "#43A047",
   border: "#EEEEEE",
-  expense: "#E53935",
-  income: "#43A047",
+  danger: "#E53935",
 };
 
 export default function KategoriScreen() {
-  const { categories, addCategory, deleteCategory } = useTransactions();
-  const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
+  const { categories, transactions, updateCategory } = useTransactions();
 
-  const filteredCategories = categories.filter((c) => c.type === activeTab);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryItem | null>(
+    null,
+  );
+  const [budgetInput, setBudgetInput] = useState("");
 
-  const handleAddCategory = () => {
-    if (!newCategoryName.trim()) {
-      alert("Nama kategori tidak boleh kosong!");
-      return;
-    }
+  const formatRp = (angka: number) => "Rp " + angka.toLocaleString("id-ID");
 
-    const icon = activeTab === "expense" ? "pricetag-outline" : "cash-outline";
-    const color = activeTab === "expense" ? "#0097A7" : "#2E7D32";
-    const bg = activeTab === "expense" ? "#E0F7FA" : "#E8F5E9";
+  // Ambil hanya kategori pengeluaran
+  const expenseCategories = categories.filter((c) => c.type === "expense");
 
-    addCategory({
-      name: newCategoryName.trim(),
-      type: activeTab,
-      icon,
-      color,
-      bg,
-    });
+  // Hitung pengeluaran bulan ini
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
 
-    setNewCategoryName("");
-    setModalVisible(false);
+  const expensesThisMonth = transactions.filter(
+    (t) =>
+      t.type === "expense" &&
+      new Date(t.date).getMonth() === currentMonth &&
+      new Date(t.date).getFullYear() === currentYear,
+  );
+
+  const getSpentAmount = (catName: string) => {
+    return expensesThisMonth
+      .filter((t) => t.category === catName)
+      .reduce((sum, current) => sum + current.amount, 0);
   };
 
-  const confirmDelete = (item: CategoryItem) => {
-    if (item.name === "Lainnya") {
-      alert("Kategori default tidak dapat dihapus!");
-      return;
-    }
-    Alert.alert(
-      "Hapus Kategori",
-      `Apakah Anda yakin ingin menghapus kategori "${item.name}"?`,
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: () => deleteCategory(item.id),
-        },
-      ],
-    );
+  const openBudgetModal = (cat: CategoryItem) => {
+    setSelectedCategory(cat);
+    setBudgetInput(cat.budget ? cat.budget.toString() : "");
+    setModalVisible(true);
+  };
+
+  const handleSaveBudget = () => {
+    if (!selectedCategory) return;
+    const parsedBudget = parseInt(budgetInput.replace(/[^0-9]/g, "")) || 0;
+
+    updateCategory(selectedCategory.id, { budget: parsedBudget });
+    setModalVisible(false);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Manajemen Kategori</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="add" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Anggaran Kategori</Text>
       </View>
 
-      {/* Tabs Pengeluaran / Pemasukan */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "expense" && styles.activeExpense,
-          ]}
-          onPress={() => setActiveTab("expense")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "expense" && styles.activeTextWhite,
-            ]}
-          >
-            Pengeluaran
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "income" && styles.activeIncome,
-          ]}
-          onPress={() => setActiveTab("income")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "income" && styles.activeTextWhite,
-            ]}
-          >
-            Pemasukan
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        contentContainerStyle={styles.container}
+        data={expenseCategories}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => {
+          const spent = getSpentAmount(item.name);
+          const budget = item.budget || 0;
+          const percentage =
+            budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
+          const isOverBudget = budget > 0 && spent > budget;
 
-      <ScrollView contentContainerStyle={styles.listContainer}>
-        {filteredCategories.map((item) => (
-          <View key={item.id} style={styles.categoryCard}>
-            <View style={styles.categoryLeft}>
-              <View style={[styles.iconBg, { backgroundColor: item.bg }]}>
+          return (
+            <TouchableOpacity
+              style={styles.categoryCard}
+              activeOpacity={0.7}
+              onPress={() => openBudgetModal(item)}
+            >
+              <View style={styles.cardHeader}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={[styles.iconBg, { backgroundColor: item.bg }]}>
+                    <Ionicons
+                      name={item.icon as any}
+                      size={20}
+                      color={item.color}
+                    />
+                  </View>
+                  <Text style={styles.categoryName}>{item.name}</Text>
+                </View>
                 <Ionicons
-                  name={item.icon as any}
+                  name="create-outline"
                   size={20}
-                  color={item.color}
+                  color={colors.textMuted}
                 />
               </View>
-              <Text style={styles.categoryName}>{item.name}</Text>
-            </View>
-            <TouchableOpacity onPress={() => confirmDelete(item)}>
-              <Ionicons name="trash-outline" size={18} color="#9E9E9E" />
-            </TouchableOpacity>
-          </View>
-        ))}
-        <View style={{ height: 80 }} />
-      </ScrollView>
 
-      {/* Modal Tambah Kategori */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        {/* Ubah View overlay menjadi TouchableOpacity */}
+              <View style={styles.amountRow}>
+                <Text
+                  style={[
+                    styles.spentAmount,
+                    isOverBudget && { color: colors.danger },
+                  ]}
+                >
+                  {formatRp(spent)}
+                </Text>
+                <Text style={styles.budgetAmount}>
+                  / {budget > 0 ? formatRp(budget) : "Belum diatur"}
+                </Text>
+              </View>
+
+              <View style={styles.progressBg}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${budget > 0 ? percentage : 0}%`,
+                      backgroundColor: isOverBudget
+                        ? colors.danger
+                        : item.color,
+                    },
+                  ]}
+                />
+              </View>
+
+              {budget > 0 && (
+                <Text
+                  style={[
+                    styles.percentText,
+                    isOverBudget && { color: colors.danger },
+                  ]}
+                >
+                  {isOverBudget
+                    ? `Melebihi anggaran!`
+                    : `${percentage}% terpakai`}
+                </Text>
+              )}
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      {/* Modal Atur Anggaran */}
+      <Modal visible={isModalVisible} transparent animationType="slide">
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
-          {/* Tambahkan onStartShouldSetResponder agar klik di dalam form tidak menutup modal */}
           <View
             style={styles.modalContent}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                Tambah Kategori{" "}
-                {activeTab === "expense" ? "Pengeluaran" : "Pemasukan"}
+                Atur Anggaran: {selectedCategory?.name}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMain} />
@@ -174,21 +177,21 @@ export default function KategoriScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nama Kategori</Text>
+              <Text style={styles.label}>Batas Pengeluaran Bulanan (Rp)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Contoh: Belanja Bulanan"
-                value={newCategoryName}
-                onChangeText={setNewCategoryName}
-                placeholderTextColor="#BDBDBD"
+                placeholder="Contoh: 1500000"
+                keyboardType="numeric"
+                value={budgetInput}
+                onChangeText={setBudgetInput}
               />
+              <Text style={styles.helperText}>
+                Isi 0 jika tidak ingin membatasi pengeluaran ini.
+              </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleAddCategory}
-            >
-              <Text style={styles.saveButtonText}>Simpan Kategori</Text>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveBudget}>
+              <Text style={styles.saveBtnText}>Simpan Anggaran</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -199,63 +202,50 @@ export default function KategoriScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: {
+  header: { padding: 20, backgroundColor: colors.background },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
+  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  categoryCard: {
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 16,
+  },
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: colors.background,
+    marginBottom: 12,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
-  addButton: {
-    backgroundColor: colors.primary,
+  iconBg: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#EEEEEE",
-    borderRadius: 12,
-    marginHorizontal: 20,
-    padding: 4,
-    marginBottom: 20,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  activeExpense: { backgroundColor: colors.expense },
-  activeIncome: { backgroundColor: colors.income },
-  tabText: { fontSize: 14, fontWeight: "600", color: colors.textMuted },
-  activeTextWhite: { color: "#FFFFFF" },
-  listContainer: { paddingHorizontal: 20 },
-  categoryCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryLeft: { flexDirection: "row", alignItems: "center" },
-  iconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
     marginRight: 12,
   },
-  categoryName: { fontSize: 16, fontWeight: "600", color: colors.textMain },
+  categoryName: { fontSize: 15, fontWeight: "bold", color: colors.textMain },
+  amountRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 8 },
+  spentAmount: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  budgetAmount: { fontSize: 14, color: colors.textMuted, marginLeft: 4 },
+  progressBg: {
+    height: 8,
+    backgroundColor: "#EEEEEE",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressFill: { height: "100%", borderRadius: 4 },
+  percentText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: "right",
+    fontWeight: "500",
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -290,16 +280,17 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
-    height: 52,
+    height: 48,
     fontSize: 15,
     color: colors.textMain,
   },
-  saveButton: {
+  helperText: { fontSize: 12, color: colors.textMuted, marginTop: 6 },
+  saveBtn: {
     backgroundColor: colors.primary,
+    height: 50,
     borderRadius: 12,
-    height: 52,
     alignItems: "center",
     justifyContent: "center",
   },
-  saveButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
+  saveBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "bold" },
 });

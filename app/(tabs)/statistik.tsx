@@ -70,6 +70,9 @@ export default function StatistikScreen() {
     const tDate = new Date(t.date);
     const matchesYear = tDate.getFullYear() === selectedYear;
 
+    // Abaikan transaksi yang berkaitan dengan utang-piutang
+    if (t.isDebtRelated) return false;
+
     if (selectedMonth === "all") {
       return t.type === "expense" && matchesYear;
     }
@@ -95,20 +98,21 @@ export default function StatistikScreen() {
     categoryMap[t.category] += t.amount;
   });
 
-  const categoryStats = Object.keys(categoryMap).map((cat) => ({
-    name: cat,
-    amount: categoryMap[cat],
-    percentage:
-      totalExpense > 0
-        ? Math.round((categoryMap[cat] / totalExpense) * 100)
-        : 0,
-  }));
+  const categoryStats = Object.keys(categoryMap)
+    .map((cat) => ({
+      name: cat,
+      amount: categoryMap[cat],
+      percentage:
+        totalExpense > 0
+          ? Math.round((categoryMap[cat] / totalExpense) * 100)
+          : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
   const pieData = categoryStats.map((item) => {
     return {
-      value: item.percentage > 0 ? item.percentage : 1,
+      value: item.amount,
       color: categoryIcons[item.name]?.color || "#BDBDBD",
-      text: `${item.percentage}%`,
     };
   });
 
@@ -135,6 +139,24 @@ export default function StatistikScreen() {
     })),
   ];
 
+  const changeMonth = (direction: "prev" | "next") => {
+    if (direction === "prev") {
+      if (selectedMonth === "all" || selectedMonth === 0) {
+        setSelectedMonth(11);
+        setSelectedYear(selectedYear - 1);
+      } else {
+        setSelectedMonth((selectedMonth as number) - 1);
+      }
+    } else {
+      if (selectedMonth === "all" || selectedMonth === 11) {
+        setSelectedMonth(0);
+        setSelectedYear(selectedYear + 1);
+      } else {
+        setSelectedMonth((selectedMonth as number) + 1);
+      }
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -148,7 +170,31 @@ export default function StatistikScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Pemilih Bulan Panah */}
+        <View style={styles.arrowMonthContainer}>
+          <TouchableOpacity
+            onPress={() => changeMonth("prev")}
+            style={styles.arrowBtn}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.textMain} />
+          </TouchableOpacity>
+          <Text style={styles.arrowMonthText}>{displayText}</Text>
+          <TouchableOpacity
+            onPress={() => changeMonth("next")}
+            style={styles.arrowBtn}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMain}
+            />
+          </TouchableOpacity>
+        </View>
+
         {/* Kartu Target Anggaran */}
         <View style={styles.budgetCard}>
           <View style={styles.budgetHeader}>
@@ -201,26 +247,49 @@ export default function StatistikScreen() {
           </View>
         </View>
 
-        {/* Grafik Donat & Legend Nominal */}
+        {/* Grafik Donat & Daftar Kategori */}
         {categoryStats.length > 0 && (
           <View style={styles.chartContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Distribusi Pengeluaran</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/category-detail",
-                    params: { month: selectedMonth, year: selectedYear },
-                  })
-                }
-              >
-                <Text style={styles.seeAllText}>Lihat Semua</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.sectionTitle}>Pengeluaran per Kategori</Text>
 
             <View style={styles.chartAndLegendWrapper}>
               <View style={styles.chartWrapper}>
-                <PieChart donut innerRadius={50} radius={75} data={pieData} />
+                <PieChart
+                  donut
+                  innerRadius={65}
+                  radius={95}
+                  data={pieData}
+                  centerLabelComponent={() => {
+                    return (
+                      <View
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: colors.textMuted,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Total
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: "bold",
+                            color: colors.textMain,
+                            textAlign: "center",
+                          }}
+                        >
+                          {formatRp(totalExpense)}
+                        </Text>
+                      </View>
+                    );
+                  }}
+                />
               </View>
 
               <View style={styles.legendWrapper}>
@@ -228,27 +297,27 @@ export default function StatistikScreen() {
                   const catColor = categoryIcons[item.name]?.color || "#BDBDBD";
                   return (
                     <View key={item.name} style={styles.legendItem}>
-                      <View
-                        style={[
-                          styles.legendColorBox,
-                          { backgroundColor: catColor },
-                        ]}
-                      />
-                      <View style={styles.legendTextContainer}>
+                      <View style={styles.legendLeft}>
+                        <View
+                          style={[
+                            styles.legendColorBox,
+                            { backgroundColor: catColor },
+                          ]}
+                        />
                         <Text
                           style={styles.legendCategoryName}
                           numberOfLines={1}
                         >
                           {item.name}
                         </Text>
-                        <View style={{ alignItems: "flex-end" }}>
-                          <Text style={styles.legendCategoryAmount}>
-                            {formatRp(item.amount)}
-                          </Text>
-                          <Text style={styles.legendCategoryPercentage}>
-                            {item.percentage}%
-                          </Text>
-                        </View>
+                      </View>
+                      <View style={styles.legendRight}>
+                        <Text style={styles.legendPercentage}>
+                          {item.percentage}%
+                        </Text>
+                        <Text style={styles.legendCategoryAmount}>
+                          {formatRp(item.amount)}
+                        </Text>
                       </View>
                     </View>
                   );
@@ -271,7 +340,7 @@ export default function StatistikScreen() {
           </View>
         )}
 
-        <View style={{ height: 80 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Modal Pilihan Periode */}
@@ -296,7 +365,6 @@ export default function StatistikScreen() {
                 <Ionicons name="close" size={24} color={colors.textMain} />
               </TouchableOpacity>
             </View>
-
             <FlatList
               data={modalOptions}
               keyExtractor={(item) => item.value.toString()}
@@ -356,7 +424,6 @@ export default function StatistikScreen() {
                 <Ionicons name="close" size={24} color={colors.textMain} />
               </TouchableOpacity>
             </View>
-
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Batas Maksimal Pengeluaran (Rp)</Text>
               <TextInput
@@ -367,7 +434,6 @@ export default function StatistikScreen() {
                 placeholder="Contoh: 1500000"
               />
             </View>
-
             <TouchableOpacity
               style={styles.saveButton}
               onPress={handleSaveBudget}
@@ -389,7 +455,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: colors.background,
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
   monthSelector: {
@@ -406,12 +471,25 @@ const styles = StyleSheet.create({
     marginRight: 4,
     fontSize: 13,
   },
+  arrowMonthContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 16,
+  },
+  arrowBtn: { padding: 4 },
+  arrowMonthText: { fontSize: 15, fontWeight: "bold", color: colors.textMain },
   container: { padding: 20 },
   budgetCard: {
     backgroundColor: colors.primary,
     padding: 20,
     borderRadius: 16,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   budgetHeader: {
     flexDirection: "row",
@@ -445,68 +523,81 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: "100%", borderRadius: 4 },
   chartContainer: { marginBottom: 24 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: colors.textMain,
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
-  seeAllText: { fontSize: 14, color: colors.primary, fontWeight: "600" },
   chartAndLegendWrapper: {
-    flexDirection: "row",
     backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
+    padding: 20,
     alignItems: "center",
-    justifyContent: "space-between",
   },
   chartWrapper: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginVertical: 10,
   },
   legendWrapper: {
-    flex: 1.3,
-    paddingLeft: 20,
-    justifyContent: "center",
+    width: "100%",
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 15,
   },
   legendItem: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 10,
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+  legendLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  legendRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 15,
   },
   legendColorBox: {
-    width: 10,
-    height: 10,
-    borderRadius: 3,
-    marginTop: 4,
-    marginRight: 8,
-  },
-  legendTextContainer: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    width: 12,
+    height: 12,
+    borderRadius: 4,
+    marginRight: 10,
   },
   legendCategoryName: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textMain,
+    fontWeight: "600",
+    flex: 1,
+  },
+  legendPercentage: {
+    fontSize: 14,
+    color: colors.textMuted,
     fontWeight: "500",
-    maxWidth: "50%",
+    width: 45,
+    textAlign: "right",
   },
   legendCategoryAmount: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textMain,
     fontWeight: "bold",
+    width: 95,
+    textAlign: "right",
   },
-  legendCategoryPercentage: {
-    fontSize: 11,
-    color: colors.textMuted,
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    marginBottom: 40,
   },
-  emptyState: { alignItems: "center", justifyContent: "center", marginTop: 40 },
   emptyStateText: { marginTop: 10, fontSize: 15, color: colors.textMuted },
   modalOverlay: {
     flex: 1,

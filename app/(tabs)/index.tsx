@@ -63,8 +63,14 @@ export default function DashboardScreen() {
           <Ionicons name="menu-outline" size={28} color={colors.textMain} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Beranda</Text>
-        <TouchableOpacity>
-          <Ionicons name="calendar-outline" size={24} color={colors.textMain} />
+
+        {/* Tombol Pengaturan Keamanan di Kanan Atas */}
+        <TouchableOpacity onPress={() => router.push("/keamanan" as any)}>
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={24}
+            color={colors.primary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -115,6 +121,46 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Kartu Menu Target Impian */}
+        <TouchableOpacity
+          style={styles.goalBannerCard}
+          activeOpacity={0.8}
+          onPress={() => router.push("/goals" as any)}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <View style={styles.goalIconBg}>
+              <Ionicons name="trophy" size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.goalBannerTitle}>Target Impian (Goals)</Text>
+              <Text style={styles.goalBannerSub}>
+                Kelola tabungan & capai targetmu
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        {/* KARTU MENU UTANG & PIUTANG */}
+        <TouchableOpacity
+          style={styles.goalBannerCard}
+          activeOpacity={0.8}
+          onPress={() => router.push("/debts" as any)}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <View style={[styles.goalIconBg, { backgroundColor: "#E3F2FD" }]}>
+              <Ionicons name="swap-horizontal" size={22} color="#1E88E5" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.goalBannerTitle}>Utang & Piutang</Text>
+              <Text style={styles.goalBannerSub}>
+                Catat uang dipinjam & meminjam
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Riwayat Transaksi</Text>
@@ -237,16 +283,44 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   summaryCard: { width: "48%", padding: 16, borderRadius: 12 },
   summaryLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 8 },
   summaryValue: { fontSize: 16, fontWeight: "bold" },
+  goalBannerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 16,
+  },
+  goalIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E8F5E9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  goalBannerTitle: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: colors.textMain,
+    marginBottom: 2,
+  },
+  goalBannerSub: { fontSize: 12, color: colors.textMuted },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    marginTop: 8,
   },
   sectionTitle: { fontSize: 16, fontWeight: "bold", color: colors.textMain },
   seeAllText: { fontSize: 14, color: colors.primary, fontWeight: "500" },
