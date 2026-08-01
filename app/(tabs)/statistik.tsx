@@ -1,15 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactions } from "../../context/TransactionContext";
 
@@ -39,22 +41,20 @@ const monthsNames = [
 ];
 
 export default function StatistikScreen() {
+  const router = useRouter();
   const { transactions, categories, monthlyBudget, setMonthlyBudget } =
     useTransactions();
 
   const currentDate = new Date();
-  // selectedMonth bisa berupa angka (0-11) atau string "all" untuk semua bulan
   const [selectedMonth, setSelectedMonth] = useState<number | "all">(
     currentDate.getMonth(),
   );
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // State untuk Modal Ubah Anggaran
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [inputBudget, setInputBudget] = useState(monthlyBudget.toString());
 
-  // Pemetaan ikon kategori secara dinamis
   const categoryIcons: {
     [key: string]: { icon: string; color: string; bg: string };
   } = {};
@@ -66,7 +66,6 @@ export default function StatistikScreen() {
     };
   });
 
-  // Filter transaksi berdasarkan pilihan bulan ("all" atau indeks bulan 0-11)
   const filteredTransactions = transactions.filter((t) => {
     const tDate = new Date(t.date);
     const matchesYear = tDate.getFullYear() === selectedYear;
@@ -105,6 +104,14 @@ export default function StatistikScreen() {
         : 0,
   }));
 
+  const pieData = categoryStats.map((item) => {
+    return {
+      value: item.percentage > 0 ? item.percentage : 1,
+      color: categoryIcons[item.name]?.color || "#BDBDBD",
+      text: `${item.percentage}%`,
+    };
+  });
+
   const formatRp = (angka: number) => {
     return "Rp " + angka.toLocaleString("id-ID");
   };
@@ -116,15 +123,12 @@ export default function StatistikScreen() {
     alert("Target anggaran berhasil diperbarui!");
   };
 
-  // Label teks yang tampil di tombol pemilih bulan
   const displayText =
     selectedMonth === "all"
       ? `Semua Bulan ${selectedYear}`
       : `${monthsNames[selectedMonth as number]} ${selectedYear}`;
-
-  // Daftar opsi untuk modal (menambahkan "Semua Bulan" di urutan paling atas)
   const modalOptions = [
-    { label: `Semua`, value: "all" },
+    { label: `Semua Bulan ${selectedYear}`, value: "all" },
     ...monthsNames.map((m, index) => ({
       label: `${m} ${selectedYear}`,
       value: index,
@@ -197,10 +201,64 @@ export default function StatistikScreen() {
           </View>
         </View>
 
-        {/* Rincian Kategori Dinamis */}
-        <Text style={styles.sectionTitle}>Rincian Kategori</Text>
+        {/* Grafik Donat & Legend Nominal */}
+        {categoryStats.length > 0 && (
+          <View style={styles.chartContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Distribusi Pengeluaran</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/category-detail",
+                    params: { month: selectedMonth, year: selectedYear },
+                  })
+                }
+              >
+                <Text style={styles.seeAllText}>Lihat Semua</Text>
+              </TouchableOpacity>
+            </View>
 
-        {categoryStats.length === 0 ? (
+            <View style={styles.chartAndLegendWrapper}>
+              <View style={styles.chartWrapper}>
+                <PieChart donut innerRadius={50} radius={75} data={pieData} />
+              </View>
+
+              <View style={styles.legendWrapper}>
+                {categoryStats.map((item) => {
+                  const catColor = categoryIcons[item.name]?.color || "#BDBDBD";
+                  return (
+                    <View key={item.name} style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColorBox,
+                          { backgroundColor: catColor },
+                        ]}
+                      />
+                      <View style={styles.legendTextContainer}>
+                        <Text
+                          style={styles.legendCategoryName}
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={styles.legendCategoryAmount}>
+                            {formatRp(item.amount)}
+                          </Text>
+                          <Text style={styles.legendCategoryPercentage}>
+                            {item.percentage}%
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {categoryStats.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons
               name="stats-chart-outline"
@@ -211,53 +269,12 @@ export default function StatistikScreen() {
               Tidak ada pengeluaran pada periode ini
             </Text>
           </View>
-        ) : (
-          categoryStats.map((item) => {
-            const catInfo = categoryIcons[item.name] || {
-              icon: "pricetag",
-              color: "#757575",
-              bg: "#EEEEEE",
-            };
-
-            return (
-              <View key={item.name} style={styles.categoryItem}>
-                <View style={styles.categoryHeader}>
-                  <View style={styles.categoryInfo}>
-                    <View
-                      style={[styles.iconBg, { backgroundColor: catInfo.bg }]}
-                    >
-                      <Ionicons
-                        name={catInfo.icon as any}
-                        size={16}
-                        color={catInfo.color}
-                      />
-                    </View>
-                    <Text style={styles.categoryName}>{item.name}</Text>
-                  </View>
-                  <Text style={styles.categoryAmount}>
-                    {formatRp(item.amount)} ({item.percentage}%)
-                  </Text>
-                </View>
-                <View style={styles.subProgressBg}>
-                  <View
-                    style={[
-                      styles.subProgressFill,
-                      {
-                        width: `${item.percentage}%`,
-                        backgroundColor: catInfo.color,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-            );
-          })
         )}
 
         <View style={{ height: 80 }} />
       </ScrollView>
 
-      {/* Modal Pilihan Bulan (Dilengkapi area klik luar untuk menutup) */}
+      {/* Modal Pilihan Periode */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -317,7 +334,7 @@ export default function StatistikScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal Atur Target Anggaran (Dilengkapi area klik luar untuk menutup) */}
+      {/* Modal Atur Target Anggaran */}
       <Modal
         visible={budgetModalVisible}
         transparent={true}
@@ -427,45 +444,69 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   progressFill: { height: "100%", borderRadius: 4 },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.textMain,
-    marginBottom: 15,
-  },
-  categoryItem: {
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryHeader: {
+  chartContainer: { marginBottom: 24 },
+  sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  categoryInfo: { flexDirection: "row", alignItems: "center" },
-  iconBg: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  sectionTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  seeAllText: { fontSize: 14, color: colors.primary, fontWeight: "600" },
+  chartAndLegendWrapper: {
+    flexDirection: "row",
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  chartWrapper: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
   },
-  categoryName: { fontSize: 15, fontWeight: "600", color: colors.textMain },
-  categoryAmount: { fontSize: 14, fontWeight: "bold", color: colors.textMain },
-  subProgressBg: {
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    overflow: "hidden",
+  legendWrapper: {
+    flex: 1.3,
+    paddingLeft: 20,
+    justifyContent: "center",
   },
-  subProgressFill: { height: "100%", borderRadius: 4 },
-  emptyState: { alignItems: "center", justifyContent: "center", marginTop: 20 },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  legendColorBox: {
+    width: 10,
+    height: 10,
+    borderRadius: 3,
+    marginTop: 4,
+    marginRight: 8,
+  },
+  legendTextContainer: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  legendCategoryName: {
+    fontSize: 12,
+    color: colors.textMain,
+    fontWeight: "500",
+    maxWidth: "50%",
+  },
+  legendCategoryAmount: {
+    fontSize: 12,
+    color: colors.textMain,
+    fontWeight: "bold",
+  },
+  legendCategoryPercentage: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  emptyState: { alignItems: "center", justifyContent: "center", marginTop: 40 },
   emptyStateText: { marginTop: 10, fontSize: 15, color: colors.textMuted },
   modalOverlay: {
     flex: 1,

@@ -1,13 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+export interface Wallet {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  initialBalance: number;
+  balance?: number; // Saldo yang dihitung otomatis
+}
+
 export interface Transaction {
   id: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer"; // Ditambah jenis transfer
   amount: number;
   category: string;
   date: string;
   note: string;
+  walletId: string; // Wajib: Dompet sumber dana
+  toWalletId?: string; // Opsional: Hanya untuk transfer (Dompet tujuan)
 }
 
 export interface CategoryItem {
@@ -29,6 +40,10 @@ interface TransactionContextType {
   deleteCategory: (id: string) => void;
   monthlyBudget: number;
   setMonthlyBudget: (budget: number) => void;
+  wallets: Wallet[];
+  addWallet: (wallet: Omit<Wallet, "id">) => void;
+  updateWallet: (id: string, wallet: Omit<Wallet, "id">) => void;
+  deleteWallet: (id: string) => void;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(
@@ -38,6 +53,7 @@ const TransactionContext = createContext<TransactionContextType | undefined>(
 const STORAGE_KEY = "@uangsaya_transactions";
 const CATEGORY_STORAGE_KEY = "@uangsaya_categories";
 const BUDGET_STORAGE_KEY = "@uangsaya_monthly_budget";
+const WALLET_STORAGE_KEY = "@uangsaya_wallets";
 
 const defaultCategories: CategoryItem[] = [
   {
@@ -58,43 +74,11 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     id: "3",
-    name: "Kuliah",
-    type: "expense",
-    icon: "school-outline",
-    color: "#388E3C",
-    bg: "#E8F5E9",
-  },
-  {
-    id: "4",
     name: "Belanja",
     type: "expense",
     icon: "cart-outline",
     color: "#E91E63",
     bg: "#FCE4EC",
-  },
-  {
-    id: "5",
-    name: "Hiburan",
-    type: "expense",
-    icon: "game-controller-outline",
-    color: "#673AB7",
-    bg: "#EDE7F6",
-  },
-  {
-    id: "6",
-    name: "Kesehatan",
-    type: "expense",
-    icon: "medical-outline",
-    color: "#F44336",
-    bg: "#FFEBEE",
-  },
-  {
-    id: "7",
-    name: "Lainnya",
-    type: "expense",
-    icon: "ellipsis-horizontal-outline",
-    color: "#757575",
-    bg: "#EEEEEE",
   },
   {
     id: "8",
@@ -104,29 +88,29 @@ const defaultCategories: CategoryItem[] = [
     color: "#2E7D32",
     bg: "#E8F5E9",
   },
+];
+
+const defaultWallets: Wallet[] = [
   {
-    id: "9",
-    name: "Bonus",
-    type: "income",
-    icon: "gift-outline",
-    color: "#F9A825",
-    bg: "#FFF9C4",
+    id: "w1",
+    name: "Tunai",
+    icon: "wallet",
+    color: "#43A047",
+    initialBalance: 0,
   },
   {
-    id: "10",
-    name: "Investasi",
-    type: "income",
-    icon: "trending-up-outline",
-    color: "#1565C0",
-    bg: "#E3F2FD",
+    id: "w2",
+    name: "Rekening BCA",
+    icon: "card",
+    color: "#1E88E5",
+    initialBalance: 0,
   },
   {
-    id: "11",
-    name: "Lainnya",
-    type: "income",
-    icon: "ellipsis-horizontal-outline",
-    color: "#757575",
-    bg: "#EEEEEE",
+    id: "w3",
+    name: "GoPay",
+    icon: "phone-portrait",
+    color: "#0097A7",
+    initialBalance: 0,
   },
 ];
 
@@ -138,7 +122,8 @@ export function TransactionProvider({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] =
     useState<CategoryItem[]>(defaultCategories);
-  const [monthlyBudget, setMonthlyBudgetState] = useState<number>(1500000); // Default anggaran Rp 1.5jt
+  const [wallets, setWallets] = useState<Wallet[]>(defaultWallets);
+  const [monthlyBudget, setMonthlyBudgetState] = useState<number>(1500000);
 
   useEffect(() => {
     loadData();
@@ -146,24 +131,35 @@ export function TransactionProvider({
 
   const loadData = async () => {
     try {
-      const storedTx = await AsyncStorage.getItem(STORAGE_KEY);
-      if (storedTx) {
-        setTransactions(JSON.parse(storedTx));
+      // Load Dompet
+      const storedWallets = await AsyncStorage.getItem(WALLET_STORAGE_KEY);
+      if (storedWallets) {
+        setWallets(JSON.parse(storedWallets));
       } else {
-        const initialData: Transaction[] = [
-          {
-            id: "1",
-            type: "income",
-            amount: 2500000,
-            category: "Gaji",
-            date: new Date().toISOString(),
-            note: "Gaji bulan ini",
-          },
-        ];
-        setTransactions(initialData);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+        await AsyncStorage.setItem(
+          WALLET_STORAGE_KEY,
+          JSON.stringify(defaultWallets),
+        );
       }
 
+      // Load Transaksi & Migrasi Data Lama
+      const storedTx = await AsyncStorage.getItem(STORAGE_KEY);
+      if (storedTx) {
+        const parsedTx: any[] = JSON.parse(storedTx);
+        // Jika ada transaksi lama yang belum punya walletId, masukkan ke Dompet Tunai ("w1")
+        const migratedTx: Transaction[] = parsedTx.map((t) => ({
+          ...t,
+          walletId: t.walletId || "w1",
+        }));
+        setTransactions(migratedTx);
+
+        // Simpan ulang jika ada migrasi
+        if (parsedTx.some((t) => !t.walletId)) {
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migratedTx));
+        }
+      }
+
+      // Load Kategori
       const storedCat = await AsyncStorage.getItem(CATEGORY_STORAGE_KEY);
       if (storedCat) {
         setCategories(JSON.parse(storedCat));
@@ -174,6 +170,7 @@ export function TransactionProvider({
         );
       }
 
+      // Load Anggaran
       const storedBudget = await AsyncStorage.getItem(BUDGET_STORAGE_KEY);
       if (storedBudget) {
         setMonthlyBudgetState(JSON.parse(storedBudget));
@@ -183,11 +180,9 @@ export function TransactionProvider({
     }
   };
 
+  // --- CRUD TRANSAKSI ---
   const addTransaction = async (newTx: Omit<Transaction, "id">) => {
-    const transaction: Transaction = {
-      ...newTx,
-      id: Date.now().toString(),
-    };
+    const transaction: Transaction = { ...newTx, id: Date.now().toString() };
     const updated = [transaction, ...transactions];
     setTransactions(updated);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -201,14 +196,10 @@ export function TransactionProvider({
       t.id === id ? { ...updatedTx, id } : t,
     );
     setTransactions(updatedTransactions);
-    try {
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedTransactions),
-      );
-    } catch (error) {
-      console.error("Gagal memperbarui transaksi:", error);
-    }
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(updatedTransactions),
+    );
   };
 
   const deleteTransaction = async (id: string) => {
@@ -217,11 +208,9 @@ export function TransactionProvider({
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
+  // --- CRUD KATEGORI ---
   const addCategory = async (newCat: Omit<CategoryItem, "id">) => {
-    const category: CategoryItem = {
-      ...newCat,
-      id: Date.now().toString(),
-    };
+    const category: CategoryItem = { ...newCat, id: Date.now().toString() };
     const updated = [...categories, category];
     setCategories(updated);
     await AsyncStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(updated));
@@ -233,14 +222,59 @@ export function TransactionProvider({
     await AsyncStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(updated));
   };
 
+  // --- CRUD DOMPET ---
+  const addWallet = async (newWallet: Omit<Wallet, "id">) => {
+    const wallet: Wallet = { ...newWallet, id: `w${Date.now()}` };
+    const updated = [...wallets, wallet];
+    setWallets(updated);
+    await AsyncStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(updated));
+  };
+
+  const updateWallet = async (
+    id: string,
+    updatedWallet: Omit<Wallet, "id">,
+  ) => {
+    const updatedWallets = wallets.map((w) =>
+      w.id === id ? { ...updatedWallet, id } : w,
+    );
+    setWallets(updatedWallets);
+    await AsyncStorage.setItem(
+      WALLET_STORAGE_KEY,
+      JSON.stringify(updatedWallets),
+    );
+  };
+
+  const deleteWallet = async (id: string) => {
+    // Opsional: Anda bisa tambahkan validasi agar tidak bisa dihapus jika ada transaksi
+    const updated = wallets.filter((w) => w.id !== id);
+    setWallets(updated);
+    await AsyncStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(updated));
+  };
+
   const setMonthlyBudget = async (budget: number) => {
     setMonthlyBudgetState(budget);
-    try {
-      await AsyncStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budget));
-    } catch (error) {
-      console.error("Gagal menyimpan anggaran:", error);
-    }
+    await AsyncStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budget));
   };
+
+  // --- PERHITUNGAN SALDO OTOMATIS (REAL-TIME) ---
+  const walletsWithCalculatedBalance = wallets.map((wallet) => {
+    let currentBalance = wallet.initialBalance;
+
+    transactions.forEach((t) => {
+      // Jika dompet ini adalah SUMBER DANA
+      if (t.walletId === wallet.id) {
+        if (t.type === "income") currentBalance += t.amount;
+        if (t.type === "expense") currentBalance -= t.amount;
+        if (t.type === "transfer") currentBalance -= t.amount; // Uang keluar dari dompet ini
+      }
+      // Jika dompet ini adalah TUJUAN TRANSFER
+      if (t.toWalletId === wallet.id && t.type === "transfer") {
+        currentBalance += t.amount; // Uang masuk ke dompet ini
+      }
+    });
+
+    return { ...wallet, balance: currentBalance };
+  });
 
   return (
     <TransactionContext.Provider
@@ -254,6 +288,10 @@ export function TransactionProvider({
         deleteCategory,
         monthlyBudget,
         setMonthlyBudget,
+        wallets: walletsWithCalculatedBalance, // Mengirimkan dompet beserta saldonya
+        addWallet,
+        updateWallet,
+        deleteWallet,
       }}
     >
       {children}

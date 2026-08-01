@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-// 1. Panggil brankas data kita
 import { useTransactions } from "../../context/TransactionContext";
 
 const colors = {
@@ -24,15 +23,13 @@ const colors = {
   expenseText: "#C62828",
   border: "#EEEEEE",
   progressBg: "#E0E0E0",
+  transfer: "#1E88E5",
 };
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { transactions, wallets, categories } = useTransactions();
 
-  // 2. Ambil isi transaksi dari brankas
-  const { transactions } = useTransactions();
-
-  // 3. Rumus menghitung Saldo, Pemasukan, dan Pengeluaran
   const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, current) => sum + current.amount, 0);
@@ -41,11 +38,22 @@ export default function DashboardScreen() {
     .filter((t) => t.type === "expense")
     .reduce((sum, current) => sum + current.amount, 0);
 
-  const currentBalance = totalIncome - totalExpense;
+  const totalAllWallets = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
 
-  // Fungsi pembantu agar angka menjadi format Rupiah (ex: 2500000 -> Rp 2.500.000)
   const formatRp = (angka: number) => {
     return "Rp " + angka.toLocaleString("id-ID");
+  };
+
+  const getWalletName = (id: string) => {
+    const w = wallets.find((item) => item.id === id);
+    return w ? w.name : "Dompet";
+  };
+
+  const getCategoryIcon = (catName: string) => {
+    const c = categories.find((item) => item.name === catName);
+    return c
+      ? { icon: c.icon, color: c.color, bg: c.bg }
+      : { icon: "pricetag-outline", color: "#757575", bg: "#EEEEEE" };
   };
 
   return (
@@ -64,24 +72,37 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.balanceSection}>
-          <Text style={styles.balanceLabel}>Saldo Saat Ini</Text>
-          <View style={styles.balanceRow}>
-            {/* 4. Tampilkan saldo dinamis */}
-            <Text style={styles.balanceAmount}>{formatRp(currentBalance)}</Text>
-            <TouchableOpacity>
-              <Ionicons name="eye-outline" size={24} color={colors.textMuted} />
-            </TouchableOpacity>
+        {/* Kartu Saldo Gabungan */}
+        <TouchableOpacity
+          style={styles.balanceSection}
+          activeOpacity={0.8}
+          onPress={() => router.push("/wallets")}
+        >
+          <View style={styles.balanceHeaderRow}>
+            <Text style={styles.balanceLabel}>Total Saldo Dompet</Text>
+            <View style={styles.walletLinkRow}>
+              <Text style={styles.walletLinkText}>Kelola</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.primary}
+              />
+            </View>
           </View>
-        </View>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceAmount}>
+              {formatRp(totalAllWallets)}
+            </Text>
+            <Ionicons name="wallet-outline" size={26} color={colors.primary} />
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.summaryRow}>
           <View
             style={[styles.summaryCard, { backgroundColor: colors.incomeBg }]}
           >
             <Text style={styles.summaryLabel}>Pemasukan</Text>
-            {/* 5. Tampilkan pemasukan dinamis */}
-            <Text style={[styles.summaryValue, { color: colors.textMain }]}>
+            <Text style={[styles.summaryValue, { color: colors.incomeText }]}>
               {formatRp(totalIncome)}
             </Text>
           </View>
@@ -89,56 +110,82 @@ export default function DashboardScreen() {
             style={[styles.summaryCard, { backgroundColor: colors.expenseBg }]}
           >
             <Text style={styles.summaryLabel}>Pengeluaran</Text>
-            {/* 6. Tampilkan pengeluaran dinamis */}
-            <Text style={[styles.summaryValue, { color: colors.textMain }]}>
+            <Text style={[styles.summaryValue, { color: colors.expenseText }]}>
               {formatRp(totalExpense)}
             </Text>
           </View>
         </View>
 
-        <View style={styles.budgetCard}>
-          <View style={styles.budgetHeader}>
-            <Ionicons name="wallet-outline" size={20} color={colors.textMain} />
-            <Text style={styles.budgetLabel}>Sisa Bulan Ini</Text>
-          </View>
-          <View style={styles.budgetRow}>
-            <Text style={styles.budgetAmount}>{formatRp(currentBalance)}</Text>
-            <Text style={styles.budgetPercent}>50%</Text>
-          </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: "50%" }]} />
-          </View>
-        </View>
-
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pengeluaran per Kategori</Text>
-          <TouchableOpacity>
+          <Text style={styles.sectionTitle}>Riwayat Transaksi</Text>
+          <TouchableOpacity onPress={() => router.push("/transaksi" as any)}>
             <Text style={styles.seeAllText}>Lihat Semua</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Daftar Kategori (Sementara Tetap Statis) */}
-        <View style={styles.categoryList}>
-          <View style={styles.categoryItem}>
-            <View style={[styles.iconBg, { backgroundColor: "#E0F7FA" }]}>
-              <Ionicons name="restaurant-outline" size={20} color="#0097A7" />
-            </View>
-            <View style={styles.categoryInfo}>
-              <Text style={styles.categoryName}>Makan</Text>
-              <View style={styles.catProgressBg}>
-                <View
-                  style={[
-                    styles.catProgressFill,
-                    { width: "36%", backgroundColor: "#0097A7" },
-                  ]}
-                />
-              </View>
-            </View>
-            <View style={styles.categoryStats}>
-              <Text style={styles.categoryAmount}>Rp 450.000</Text>
-              <Text style={styles.categoryPercent}>36%</Text>
-            </View>
-          </View>
+        {/* Daftar Riwayat Transaksi Dinamis */}
+        <View style={styles.transactionList}>
+          {transactions.length === 0 ? (
+            <Text style={styles.emptyText}>Belum ada transaksi tercatat</Text>
+          ) : (
+            transactions.slice(0, 5).map((t) => {
+              const isTransfer = t.type === "transfer";
+              const catInfo = getCategoryIcon(t.category);
+              const fromWalletName = getWalletName(t.walletId);
+              const toWalletName = t.toWalletId
+                ? getWalletName(t.toWalletId)
+                : "";
+
+              return (
+                <View key={t.id} style={styles.transactionItem}>
+                  <View
+                    style={[
+                      styles.iconBg,
+                      { backgroundColor: isTransfer ? "#E3F2FD" : catInfo.bg },
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        isTransfer ? "swap-horizontal" : (catInfo.icon as any)
+                      }
+                      size={20}
+                      color={isTransfer ? colors.transfer : catInfo.color}
+                    />
+                  </View>
+                  <View style={styles.transactionInfo}>
+                    <Text style={styles.transactionTitle}>
+                      {isTransfer
+                        ? `Transfer (${fromWalletName} ➔ ${toWalletName})`
+                        : t.category}
+                    </Text>
+                    <Text style={styles.transactionSubtitle}>
+                      {fromWalletName} {t.note ? `• ${t.note}` : ""}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.transactionAmount,
+                      {
+                        color:
+                          t.type === "income"
+                            ? colors.incomeText
+                            : t.type === "expense"
+                              ? colors.expenseText
+                              : colors.transfer,
+                      },
+                    ]}
+                  >
+                    {t.type === "income"
+                      ? "+ "
+                      : t.type === "expense"
+                        ? "- "
+                        : ""}
+                    {formatRp(t.amount)}
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
 
         <View style={{ height: 80 }} />
@@ -159,14 +206,34 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
   container: { paddingHorizontal: 20, paddingTop: 10 },
-  balanceSection: { marginBottom: 24 },
-  balanceLabel: { fontSize: 14, color: colors.textMuted, marginBottom: 8 },
+  balanceSection: {
+    backgroundColor: colors.card,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 24,
+  },
+  balanceHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  balanceLabel: { fontSize: 13, color: colors.textMuted, fontWeight: "500" },
+  walletLinkRow: { flexDirection: "row", alignItems: "center" },
+  walletLinkText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: "600",
+    marginRight: 2,
+  },
   balanceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  balanceAmount: { fontSize: 32, fontWeight: "bold", color: colors.textMain },
+  balanceAmount: { fontSize: 28, fontWeight: "bold", color: colors.textMain },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -175,39 +242,6 @@ const styles = StyleSheet.create({
   summaryCard: { width: "48%", padding: 16, borderRadius: 12 },
   summaryLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 8 },
   summaryValue: { fontSize: 16, fontWeight: "bold" },
-  budgetCard: {
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 24,
-  },
-  budgetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  budgetLabel: { fontSize: 14, color: colors.textMuted, marginLeft: 8 },
-  budgetRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  budgetAmount: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
-  budgetPercent: { fontSize: 14, fontWeight: "bold", color: colors.textMain },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: colors.progressBg,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 4,
-  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -216,11 +250,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontWeight: "bold", color: colors.textMain },
   seeAllText: { fontSize: 14, color: colors.primary, fontWeight: "500" },
-  categoryList: { marginBottom: 20 },
-  categoryItem: {
+  transactionList: { marginBottom: 20 },
+  transactionItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    backgroundColor: colors.card,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   iconBg: {
     width: 40,
@@ -230,25 +269,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  categoryInfo: { flex: 1, marginRight: 12 },
-  categoryName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textMain,
-    marginBottom: 6,
-  },
-  catProgressBg: {
-    height: 4,
-    backgroundColor: colors.progressBg,
-    borderRadius: 2,
-  },
-  catProgressFill: { height: "100%", borderRadius: 2 },
-  categoryStats: { alignItems: "flex-end" },
-  categoryAmount: {
+  transactionInfo: { flex: 1, marginRight: 10 },
+  transactionTitle: {
     fontSize: 14,
     fontWeight: "600",
     color: colors.textMain,
     marginBottom: 2,
   },
-  categoryPercent: { fontSize: 12, color: colors.textMuted },
+  transactionSubtitle: { fontSize: 12, color: colors.textMuted },
+  transactionAmount: { fontSize: 14, fontWeight: "bold" },
+  emptyText: { textAlign: "center", color: colors.textMuted, marginTop: 10 },
 });
