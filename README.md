@@ -1,50 +1,78 @@
-# Welcome to your Expo app 👋
+Berikut adalah isi file **`README.md`** yang sudah siap Anda salin dan tempel ke dalam file `README.md` di proyek Anda:
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+````markdown
+# 💰 UangSaya
 
-## Get started
+**UangSaya** adalah aplikasi pencatat keuangan pribadi berbasis seluler yang dirancang untuk membantu pengguna mengelola dompet, melacak pemasukan dan pengeluaran harian, memantau target anggaran bulanan, serta melihat visualisasi statistik keuangan secara interaktif.
 
-1. Install dependencies
+Aplikasi ini dibangun menggunakan **React Native** dan **Expo** dengan dukungan **TypeScript**.
 
+---
+
+## 🚀 Fitur Utama
+
+- 📊 **Grafik & Statistik Interaktif:** Menampilkan proporsi pengeluaran berdasarkan kategori dalam bentuk diagram donat (_donut chart_).
+- 💳 **Manajemen Dompet:** Mengelola berbagai sumber dana atau akun keuangan secara terpisah.
+- 🎯 **Target Anggaran (_Monthly Budget_):** Menetapkan batas maksimal pengeluaran bulanan lengkap dengan indikator progres pemakaian.
+- 💸 **Pencatatan Utang-Piutang:** Membantu memantau pinjaman atau piutang agar tidak terlewat.
+- 🔄 **Pencatatan Transaksi Fleksibel:** Mencatat transaksi masuk dan keluar dengan kategori dan ikon yang dapat disesuaikan.
+- 📱 **Penyimpanan Lokal:** Data tersimpan dengan aman di perangkat menggunakan `AsyncStorage`.
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+- **Framework:** [React Native](https://react-native.dev/) / [Expo](https://expo.dev/)
+- **Routing:** [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
+- **Bahasa:** [TypeScript](https://www.typescriptlang.org/)
+- **Grafik:** `react-native-gifted-charts`
+- **Ikon:** `@expo/vector-icons` (Ionicons)
+
+---
+
+## ⚙️ Cara Menjalankan Proyek secara Lokal
+
+Ikuti langkah-langkah di bawah ini untuk menjalankan proyek di komputer Anda:
+
+1. **Clone repository ini:**
    ```bash
-   npm install
+   git clone [https://github.com/mosesmahardika28/uangsayabaru.git](https://github.com/mosesmahardika28/uangsayabaru.git)
    ```
+````
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+2. **Masuk ke direktori proyek:**
 
 ```bash
-npm run reset-project
+cd uangsayabaru
+
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+3. **Instal dependensi:**
 
-## Learn more
+```bash
+npm install
 
-To learn more about developing your project with Expo, look at the following resources:
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+4. **Jalankan aplikasi:**
 
-## Join the community
+```bash
+npx expo start
 
-Join our community of developers creating universal apps.
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+5. Pindai QR Code yang muncul di terminal menggunakan aplikasi **Expo Go** di HP Anda, atau jalankan pada emulator Android/iOS.
+
+---
+
+## 📄 Lisensi
+
+Proyek ini bersifat open-source dan dibuat untuk keperluan pengembangan pribadi serta pengelolaan keuangan.
+
+---
+
+Dibuat dengan ❤️ oleh [Moses Mahardika](https://www.google.com/search?q=https://github.com/mosesmahardika28)
+
+```
+
+```
