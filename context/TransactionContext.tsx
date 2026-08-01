@@ -1,6 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+export type BudgetPeriod = "monthly" | "custom" | "yearly";
+
+export interface Budget {
+  amount: number;
+  period: BudgetPeriod;
+  durationMonths?: number;
+  startDate: string;
+}
+
 export interface Wallet {
   id: string;
   name: string;
@@ -19,7 +28,7 @@ export interface Transaction {
   note: string;
   walletId: string;
   toWalletId?: string;
-  isDebtRelated?: boolean; // <-- Flag penanda agar mudah dikecualikan di statistik
+  isDebtRelated?: boolean;
 }
 
 export interface CategoryItem {
@@ -30,6 +39,8 @@ export interface CategoryItem {
   color: string;
   bg: string;
   budget?: number;
+  budgetPeriod?: "weekly" | "monthly" | "custom";
+  budgetDuration?: number;
 }
 
 export interface Goal {
@@ -46,12 +57,12 @@ export interface Debt {
   id: string;
   name: string;
   amount: number;
-  type: "lend" | "borrow"; // 'lend' = Piutang, 'borrow' = Utang
+  type: "lend" | "borrow";
   dueDate: string;
   isPaid: boolean;
-  walletId: string; // Dompet asal/tujuan saat utang dibuat
-  transactionId?: string; // ID transaksi otomatis saat utang dibuat
-  paidTransactionId?: string; // ID transaksi otomatis saat dilunasi
+  walletId: string;
+  transactionId?: string;
+  paidTransactionId?: string;
   note?: string;
 }
 
@@ -87,12 +98,18 @@ interface TransactionContextType {
   ) => void;
   toggleDebtPaid: (id: string, paidWalletId?: string) => void;
   deleteDebt: (id: string) => void;
+
+  budget: Budget;
+  setBudget: (budget: Budget) => void;
+  isTransactionWithinBudgetPeriod: (transactionDate: string) => boolean;
+  resetAppData: () => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(
   undefined,
 );
 
+const BUDGET_CONFIG_KEY = "@uangsaya_budget_config";
 const STORAGE_KEY = "@uangsaya_transactions";
 const CATEGORY_STORAGE_KEY = "@uangsaya_categories";
 const BUDGET_STORAGE_KEY = "@uangsaya_monthly_budget";
@@ -109,6 +126,7 @@ const defaultCategories: CategoryItem[] = [
     color: "#0097A7",
     bg: "#E0F7FA",
     budget: 1500000,
+    budgetPeriod: "monthly",
   },
   {
     id: "2",
@@ -118,6 +136,7 @@ const defaultCategories: CategoryItem[] = [
     color: "#F57C00",
     bg: "#FFF3E0",
     budget: 500000,
+    budgetPeriod: "monthly",
   },
   {
     id: "3",
@@ -127,6 +146,7 @@ const defaultCategories: CategoryItem[] = [
     color: "#E91E63",
     bg: "#FCE4EC",
     budget: 1000000,
+    budgetPeriod: "monthly",
   },
   {
     id: "8",
@@ -200,6 +220,12 @@ export function TransactionProvider({
   const [debts, setDebts] = useState<Debt[]>([]);
   const [monthlyBudget, setMonthlyBudgetState] = useState<number>(1500000);
 
+  const [budget, setBudgetState] = useState<Budget>({
+    amount: 1500000,
+    period: "monthly",
+    startDate: new Date().toISOString().split("T")[0],
+  });
+
   useEffect(() => {
     loadData();
   }, []);
@@ -223,6 +249,9 @@ export function TransactionProvider({
       const storedBudget = await AsyncStorage.getItem(BUDGET_STORAGE_KEY);
       if (storedBudget) setMonthlyBudgetState(JSON.parse(storedBudget));
 
+      const storedBudgetConfig = await AsyncStorage.getItem(BUDGET_CONFIG_KEY);
+      if (storedBudgetConfig) setBudgetState(JSON.parse(storedBudgetConfig));
+
       const storedGoals = await AsyncStorage.getItem(GOAL_STORAGE_KEY);
       if (storedGoals) setGoals(JSON.parse(storedGoals));
 
@@ -231,6 +260,49 @@ export function TransactionProvider({
     } catch (error) {
       console.error("Gagal memuat data:", error);
     }
+  };
+
+  const resetAppData = async () => {
+    try {
+      await AsyncStorage.clear();
+      setTransactions([]);
+      setCategories(defaultCategories);
+      setWallets(defaultWallets);
+      setGoals([]);
+      setDebts([]);
+      setMonthlyBudgetState(1500000);
+      setBudget({
+        amount: 1500000,
+        period: "monthly",
+        startDate: new Date().toISOString().split("T")[0],
+      });
+    } catch (error) {
+      console.error("Gagal mereset aplikasi:", error);
+    }
+  };
+
+  const setBudget = async (newBudget: Budget) => {
+    setBudgetState(newBudget);
+    await AsyncStorage.setItem(BUDGET_CONFIG_KEY, JSON.stringify(newBudget));
+  };
+
+  const isTransactionWithinBudgetPeriod = (transactionDate: string) => {
+    const tDate = new Date(transactionDate);
+    const startDate = new Date(budget.startDate);
+
+    if (budget.period === "monthly") {
+      return (
+        tDate.getMonth() === startDate.getMonth() &&
+        tDate.getFullYear() === startDate.getFullYear()
+      );
+    } else if (budget.period === "yearly") {
+      return tDate.getFullYear() === startDate.getFullYear();
+    } else if (budget.period === "custom" && budget.durationMonths) {
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + budget.durationMonths);
+      return tDate >= startDate && tDate <= endDate;
+    }
+    return true;
   };
 
   const addTransaction = async (newTx: Omit<Transaction, "id">) => {
@@ -379,7 +451,6 @@ export function TransactionProvider({
     });
   };
 
-  // Fungsi Utang Piutang dengan Flag isDebtRelated: true
   const addDebt = async (
     newDebt: Omit<Debt, "id" | "isPaid" | "transactionId">,
     walletId: string,
@@ -402,7 +473,7 @@ export function TransactionProvider({
       date: new Date().toISOString(),
       note: newDebt.note ? `${noteText} (${newDebt.note})` : noteText,
       walletId: walletId,
-      isDebtRelated: true, // <-- Ditandai sebagai transaksi utang piutang
+      isDebtRelated: true,
     };
 
     const updatedTransactions = [newTransaction, ...transactions];
@@ -451,7 +522,7 @@ export function TransactionProvider({
         date: new Date().toISOString(),
         note: noteText,
         walletId: targetWalletId,
-        isDebtRelated: true, // <-- Ditandai sebagai transaksi utang piutang
+        isDebtRelated: true,
       };
 
       updatedTransactions = [paymentTransaction, ...updatedTransactions];
@@ -498,9 +569,9 @@ export function TransactionProvider({
     await AsyncStorage.setItem(DEBT_STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const setMonthlyBudget = async (budget: number) => {
-    setMonthlyBudgetState(budget);
-    await AsyncStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budget));
+  const setMonthlyBudget = async (budgetVal: number) => {
+    setMonthlyBudgetState(budgetVal);
+    await AsyncStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budgetVal));
   };
 
   const walletsWithCalculatedBalance = wallets.map((wallet) => {
@@ -544,6 +615,10 @@ export function TransactionProvider({
         addDebt,
         toggleDebtPaid,
         deleteDebt,
+        budget,
+        setBudget,
+        isTransactionWithinBudgetPeriod,
+        resetAppData,
       }}
     >
       {children}

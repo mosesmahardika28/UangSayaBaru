@@ -70,7 +70,6 @@ export default function StatistikScreen() {
     const tDate = new Date(t.date);
     const matchesYear = tDate.getFullYear() === selectedYear;
 
-    // Abaikan transaksi yang berkaitan dengan utang-piutang
     if (t.isDebtRelated) return false;
 
     if (selectedMonth === "all") {
@@ -113,6 +112,7 @@ export default function StatistikScreen() {
     return {
       value: item.amount,
       color: categoryIcons[item.name]?.color || "#BDBDBD",
+      text: `${item.percentage}%`,
     };
   });
 
@@ -247,43 +247,26 @@ export default function StatistikScreen() {
           </View>
         </View>
 
-        {/* Grafik Donat & Daftar Kategori */}
+        {/* Grafik Donat Premium & Daftar Kategori */}
         {categoryStats.length > 0 && (
           <View style={styles.chartContainer}>
-            <Text style={styles.sectionTitle}>Pengeluaran per Kategori</Text>
+            <Text style={styles.sectionTitle}>Proporsi Pengeluaran</Text>
 
             <View style={styles.chartAndLegendWrapper}>
               <View style={styles.chartWrapper}>
                 <PieChart
                   donut
-                  innerRadius={65}
-                  radius={95}
+                  innerRadius={70}
+                  radius={100}
                   data={pieData}
+                  strokeWidth={2}
                   centerLabelComponent={() => {
                     return (
-                      <View
-                        style={{
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: colors.textMuted,
-                            fontWeight: "600",
-                          }}
-                        >
-                          Total
+                      <View style={styles.centerLabelContainer}>
+                        <Text style={styles.centerLabelTitle}>
+                          Total Keluar
                         </Text>
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            fontWeight: "bold",
-                            color: colors.textMain,
-                            textAlign: "center",
-                          }}
-                        >
+                        <Text style={styles.centerLabelValue} numberOfLines={1}>
                           {formatRp(totalExpense)}
                         </Text>
                       </View>
@@ -295,15 +278,24 @@ export default function StatistikScreen() {
               <View style={styles.legendWrapper}>
                 {categoryStats.map((item) => {
                   const catColor = categoryIcons[item.name]?.color || "#BDBDBD";
+                  const catIcon = categoryIcons[item.name]?.icon || "pricetag";
+                  const catBg = categoryIcons[item.name]?.bg || "#EEEEEE";
+
                   return (
                     <View key={item.name} style={styles.legendItem}>
                       <View style={styles.legendLeft}>
                         <View
                           style={[
-                            styles.legendColorBox,
-                            { backgroundColor: catColor },
+                            styles.legendIconBox,
+                            { backgroundColor: catBg },
                           ]}
-                        />
+                        >
+                          <Ionicons
+                            name={catIcon as any}
+                            size={16}
+                            color={catColor}
+                          />
+                        </View>
                         <Text
                           style={styles.legendCategoryName}
                           numberOfLines={1}
@@ -312,9 +304,11 @@ export default function StatistikScreen() {
                         </Text>
                       </View>
                       <View style={styles.legendRight}>
-                        <Text style={styles.legendPercentage}>
-                          {item.percentage}%
-                        </Text>
+                        <View style={styles.badgePercentage}>
+                          <Text style={styles.legendPercentage}>
+                            {item.percentage}%
+                          </Text>
+                        </View>
                         <Text style={styles.legendCategoryAmount}>
                           {formatRp(item.amount)}
                         </Text>
@@ -490,6 +484,11 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   budgetHeader: {
     flexDirection: "row",
@@ -536,11 +535,33 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 20,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   chartWrapper: {
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 10,
+  },
+  centerLabelContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+  centerLabelTitle: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  centerLabelValue: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: colors.textMain,
+    textAlign: "center",
   },
   legendWrapper: {
     width: "100%",
@@ -553,24 +574,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   legendLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    marginRight: 10,
+  },
+  legendIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
   legendRight: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 15,
+    gap: 10,
   },
-  legendColorBox: {
-    width: 12,
-    height: 12,
-    borderRadius: 4,
-    marginRight: 10,
+  badgePercentage: {
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: "center",
+  },
+  legendPercentage: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: "600",
   },
   legendCategoryName: {
     fontSize: 14,
@@ -578,19 +615,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flex: 1,
   },
-  legendPercentage: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontWeight: "500",
-    width: 45,
-    textAlign: "right",
-  },
   legendCategoryAmount: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textMain,
     fontWeight: "bold",
-    width: 95,
     textAlign: "right",
+    minWidth: 85,
   },
   emptyState: {
     alignItems: "center",

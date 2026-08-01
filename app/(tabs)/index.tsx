@@ -31,11 +31,11 @@ export default function DashboardScreen() {
   const { transactions, wallets, categories } = useTransactions();
 
   const totalIncome = transactions
-    .filter((t) => t.type === "income")
+    .filter((t) => t.type === "income" && !t.isDebtRelated)
     .reduce((sum, current) => sum + current.amount, 0);
 
   const totalExpense = transactions
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !t.isDebtRelated)
     .reduce((sum, current) => sum + current.amount, 0);
 
   const totalAllWallets = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
@@ -59,9 +59,6 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <TouchableOpacity>
-          <Ionicons name="menu-outline" size={28} color={colors.textMain} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Beranda</Text>
 
         {/* Tombol Pengaturan Keamanan di Kanan Atas */}
@@ -162,6 +159,26 @@ export default function DashboardScreen() {
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </TouchableOpacity>
 
+        {/* KARTU MENU EKSPOR LAPORAN KEUANGAN */}
+        <TouchableOpacity
+          style={styles.goalBannerCard}
+          activeOpacity={0.8}
+          onPress={() => router.push("/export" as any)}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <View style={[styles.goalIconBg, { backgroundColor: "#FFF3E0" }]}>
+              <Ionicons name="download-outline" size={22} color="#F57C00" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.goalBannerTitle}>Ekspor Laporan</Text>
+              <Text style={styles.goalBannerSub}>
+                Unduh rekap transaksi format CSV
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Riwayat Transaksi</Text>
           <TouchableOpacity onPress={() => router.push("/transaksi" as any)}>
@@ -250,7 +267,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     backgroundColor: colors.background,
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
   container: { paddingHorizontal: 20, paddingTop: 10 },
   balanceSection: {
     backgroundColor: colors.card,

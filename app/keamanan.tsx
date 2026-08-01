@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { useTransactions } from "../context/TransactionContext"; // <-- Import useTransactions
 
 export default function KeamananScreen() {
   const router = useRouter();
   const { hasPin, setupPin, removePin } = useAuth();
+  const { resetAppData } = useTransactions(); // <-- Ambil fungsi resetAppData dari context
   const [newPin, setNewPin] = useState("");
 
   const handleSetPin = () => {
@@ -32,6 +34,55 @@ export default function KeamananScreen() {
       { text: "Batal", style: "cancel" },
       { text: "Hapus", style: "destructive", onPress: () => removePin() },
     ]);
+  };
+
+  const handleResetApp = async () => {
+    Alert.alert(
+      "Peringatan Keras!",
+      "Semua data transaksi, dompet, kategori, target, dan pengaturan akan dihapus secara permanen dan dikembalikan ke awal.",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Ya, Reset Permanen",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Konfirmasi Terakhir",
+              "Tindakan ini tidak dapat dibatalkan. Apakah Anda benar-benar yakin?",
+              [
+                { text: "Tidak", style: "cancel" },
+                {
+                  text: "Hapus Semua Data",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      // Menjalankan fungsi reset total dari context
+                      await resetAppData();
+
+                      Alert.alert(
+                        "Berhasil",
+                        "Aplikasi berhasil di-reset dan dibersihkan.",
+                        [
+                          {
+                            text: "OK",
+                            onPress: () => {
+                              router.replace("/(tabs)");
+                            },
+                          },
+                        ],
+                      );
+                    } catch (error) {
+                      console.error("Gagal reset:", error);
+                      Alert.alert("Error", "Gagal mereset data aplikasi.");
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -83,6 +134,22 @@ export default function KeamananScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Menu Reset Aplikasi */}
+        <View style={styles.resetSection}>
+          <Text style={styles.sectionTitle}>Zona Berbahaya</Text>
+          <TouchableOpacity style={styles.resetBtn} onPress={handleResetApp}>
+            <Ionicons
+              name="warning-outline"
+              size={20}
+              color="#C62828"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.resetBtnText}>
+              Reset Aplikasi ke Pengaturan Awal
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -150,4 +217,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   removeBtnText: { color: "#C62828", fontWeight: "bold", fontSize: 15 },
+  resetSection: { marginTop: 30 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#757575",
+    marginBottom: 10,
+    textTransform: "uppercase",
+  },
+  resetBtn: {
+    backgroundColor: "#FFEBEE",
+    width: "100%",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+  },
+  resetBtnText: { color: "#C62828", fontWeight: "bold", fontSize: 14 },
 });
