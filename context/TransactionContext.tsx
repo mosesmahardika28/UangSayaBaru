@@ -44,6 +44,9 @@ export interface CategoryItem {
   budgetDuration?: number;
 }
 
+// Menambahkan alias Category agar cocok dengan fungsi import
+export type Category = CategoryItem;
+
 export interface Goal {
   id: string;
   name: string;
@@ -114,6 +117,13 @@ interface TransactionContextType {
   setBudget: (budget: Budget) => void;
   isTransactionWithinBudgetPeriod: (transactionDate: string) => boolean;
   resetAppData: () => Promise<void>;
+
+  // Menambahkan importData ke dalam context type
+  importData: (data: {
+    transactions?: Transaction[];
+    wallets?: Wallet[];
+    categories?: Category[];
+  }) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(
@@ -335,7 +345,6 @@ export function TransactionProvider({
   };
 
   const addTransaction = async (newTx: Omit<Transaction, "id">) => {
-    // Pengecekan saldo diabaikan jika transaksi keluar dari dompet virtual sistem (pencairan goal)
     if (newTx.type === "expense" || newTx.type === "transfer") {
       if (newTx.walletId !== "system_goal") {
         const currentBal = getWalletBalance(newTx.walletId);
@@ -454,7 +463,6 @@ export function TransactionProvider({
     await AsyncStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(updated));
   };
 
-  // MENABUNG: Transfer dari Dompet Asli -> Ke Dompet Virtual Sistem (Target)
   const depositToGoal = async (
     goalId: string,
     walletId: string,
@@ -463,7 +471,6 @@ export function TransactionProvider({
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
 
-    // Cek saldo dompet asal mencukupi atau tidak
     const currentBal = getWalletBalance(walletId);
     if (currentBal < amount) {
       return Promise.reject(
@@ -477,7 +484,6 @@ export function TransactionProvider({
     setGoals(updatedGoals);
     await AsyncStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(updatedGoals));
 
-    // Catat transaksi transfer dengan menyematkan goalId
     await addTransaction({
       type: "transfer",
       amount: amount,
@@ -490,7 +496,6 @@ export function TransactionProvider({
     });
   };
 
-  // MENCAIRKAN: Transfer dari Dompet Virtual Sistem -> Ke Dompet Asli Pilihan
   const withdrawFromGoal = async (
     goalId: string,
     walletId: string,
@@ -513,7 +518,6 @@ export function TransactionProvider({
     setGoals(updatedGoals);
     await AsyncStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(updatedGoals));
 
-    // Catat transaksi transfer pencairan dengan menyematkan goalId
     await addTransaction({
       type: "transfer",
       amount: actualWithdraw,
@@ -649,6 +653,39 @@ export function TransactionProvider({
     await AsyncStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budgetVal));
   };
 
+  // Fungsi Import Data Cadangan Full (JSON)
+  const importData = async (data: {
+    transactions?: Transaction[];
+    wallets?: Wallet[];
+    categories?: CategoryItem[];
+  }) => {
+    try {
+      if (data.transactions) {
+        setTransactions(data.transactions);
+        await AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(data.transactions),
+        );
+      }
+      if (data.wallets) {
+        setWallets(data.wallets);
+        await AsyncStorage.setItem(
+          WALLET_STORAGE_KEY,
+          JSON.stringify(data.wallets),
+        );
+      }
+      if (data.categories) {
+        setCategories(data.categories);
+        await AsyncStorage.setItem(
+          CATEGORY_STORAGE_KEY,
+          JSON.stringify(data.categories),
+        );
+      }
+    } catch (e) {
+      throw new Error("Gagal menyimpan data pemulihan ke memori aplikasi.");
+    }
+  };
+
   const walletsWithCalculatedBalance = wallets.map((wallet) => {
     let currentBalance = wallet.initialBalance;
     transactions.forEach((t) => {
@@ -694,6 +731,7 @@ export function TransactionProvider({
         setBudget,
         isTransactionWithinBudgetPeriod,
         resetAppData,
+        importData, // Diikutsertakan di provider
       }}
     >
       {children}

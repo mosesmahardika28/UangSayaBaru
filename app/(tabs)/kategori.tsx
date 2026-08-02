@@ -12,20 +12,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import {
   CategoryItem,
   useTransactions,
 } from "../../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-  danger: "#E53935",
-};
 
 export default function KategoriScreen() {
   const router = useRouter();
@@ -36,6 +27,9 @@ export default function KategoriScreen() {
     updateCategory,
     deleteCategory,
   } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
+
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -207,10 +201,22 @@ export default function KategoriScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Kategori & Anggaran</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={handleOpenAddModal}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Kategori & Anggaran
+        </Text>
+        <TouchableOpacity
+          style={[styles.addBtn, { backgroundColor: colors.primary }]}
+          onPress={handleOpenAddModal}
+        >
           <Ionicons name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -219,6 +225,7 @@ export default function KategoriScreen() {
         <TouchableOpacity
           style={[
             styles.tabBtn,
+            { backgroundColor: colors.card, borderColor: colors.border },
             activeTab === "expense" && styles.tabActiveExpense,
           ]}
           onPress={() => setActiveTab("expense")}
@@ -226,6 +233,7 @@ export default function KategoriScreen() {
           <Text
             style={[
               styles.tabText,
+              { color: colors.textMuted },
               activeTab === "expense" && styles.tabTextActive,
             ]}
           >
@@ -235,6 +243,7 @@ export default function KategoriScreen() {
         <TouchableOpacity
           style={[
             styles.tabBtn,
+            { backgroundColor: colors.card, borderColor: colors.border },
             activeTab === "income" && styles.tabActiveIncome,
           ]}
           onPress={() => setActiveTab("income")}
@@ -242,6 +251,7 @@ export default function KategoriScreen() {
           <Text
             style={[
               styles.tabText,
+              { color: colors.textMuted },
               activeTab === "income" && styles.tabTextActive,
             ]}
           >
@@ -257,7 +267,7 @@ export default function KategoriScreen() {
         {filteredCategories.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="pricetag-outline" size={48} color={colors.border} />
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
               Belum ada kategori{" "}
               {activeTab === "expense" ? "pengeluaran" : "pemasukan"}.
             </Text>
@@ -274,7 +284,10 @@ export default function KategoriScreen() {
             return (
               <TouchableOpacity
                 key={cat.id}
-                style={styles.card}
+                style={[
+                  styles.card,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 activeOpacity={0.8}
                 onPress={() => {
                   if (cat.type === "expense") {
@@ -300,7 +313,10 @@ export default function KategoriScreen() {
                   <View
                     style={[
                       styles.iconBox,
-                      { backgroundColor: cat.bg || "#EEEEEE" },
+                      {
+                        backgroundColor:
+                          cat.bg || (isDarkMode ? "#2C2C2C" : "#EEEEEE"),
+                      },
                     ]}
                   >
                     <Ionicons
@@ -310,10 +326,17 @@ export default function KategoriScreen() {
                     />
                   </View>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.catName}>{cat.name}</Text>
+                    <Text style={[styles.catName, { color: colors.textMain }]}>
+                      {cat.name}
+                    </Text>
                     {cat.type === "expense" ? (
                       <View>
-                        <Text style={styles.catBudgetInfo}>
+                        <Text
+                          style={[
+                            styles.catBudgetInfo,
+                            { color: colors.textMuted },
+                          ]}
+                        >
                           Terpakai:{" "}
                           <Text
                             style={{ fontWeight: "bold", color: colors.danger }}
@@ -322,7 +345,12 @@ export default function KategoriScreen() {
                           </Text>{" "}
                           / {formatRp(budgetAmt)}
                         </Text>
-                        <Text style={styles.catRemaining}>
+                        <Text
+                          style={[
+                            styles.catRemaining,
+                            { color: colors.textMuted },
+                          ]}
+                        >
                           Sisa:{" "}
                           <Text
                             style={{
@@ -348,7 +376,10 @@ export default function KategoriScreen() {
 
                 <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={styles.actionIconBtn}
+                    style={[
+                      styles.actionIconBtn,
+                      { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F5F5" },
+                    ]}
                     onPress={() => handleOpenEditModal(cat)}
                   >
                     <Ionicons
@@ -358,7 +389,10 @@ export default function KategoriScreen() {
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.actionIconBtn}
+                    style={[
+                      styles.actionIconBtn,
+                      { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F5F5" },
+                    ]}
                     onPress={() => handleDelete(cat.id, cat.name)}
                   >
                     <Ionicons
@@ -384,11 +418,13 @@ export default function KategoriScreen() {
           onPress={() => setIsModalVisible(false)}
         >
           <View
-            style={styles.modalContent}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
             onStartShouldSetResponder={() => true}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
                 {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
               </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
@@ -397,11 +433,17 @@ export default function KategoriScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Jenis Kategori</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Jenis Kategori
+              </Text>
               <View style={styles.typeRow}>
                 <TouchableOpacity
                   style={[
                     styles.typeBtn,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
                     type === "expense" && styles.typeBtnExpenseActive,
                   ]}
                   onPress={() => setType("expense")}
@@ -409,6 +451,7 @@ export default function KategoriScreen() {
                   <Text
                     style={[
                       styles.typeText,
+                      { color: colors.textMain },
                       type === "expense" && { color: "#FFF" },
                     ]}
                   >
@@ -418,6 +461,10 @@ export default function KategoriScreen() {
                 <TouchableOpacity
                   style={[
                     styles.typeBtn,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
                     type === "income" && styles.typeBtnIncomeActive,
                   ]}
                   onPress={() => setType("income")}
@@ -425,6 +472,7 @@ export default function KategoriScreen() {
                   <Text
                     style={[
                       styles.typeText,
+                      { color: colors.textMain },
                       type === "income" && { color: "#FFF" },
                     ]}
                   >
@@ -435,10 +483,20 @@ export default function KategoriScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nama Kategori</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Nama Kategori
+              </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    color: colors.textMain,
+                  },
+                ]}
                 placeholder="Contoh: Hiburan, Tagihan"
+                placeholderTextColor={colors.textMuted}
                 value={name}
                 onChangeText={setName}
               />
@@ -447,10 +505,20 @@ export default function KategoriScreen() {
             {type === "expense" && (
               <>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Batas Anggaran</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    Batas Anggaran
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.textMain,
+                      },
+                    ]}
                     placeholder="Contoh: 500000"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     value={budget}
                     onChangeText={setBudget}
@@ -458,19 +526,32 @@ export default function KategoriScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Periode Anggaran</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    Periode Anggaran
+                  </Text>
                   <View style={styles.periodRow}>
                     <TouchableOpacity
                       style={[
                         styles.periodBtn,
-                        budgetPeriod === "weekly" && styles.periodBtnActive,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
+                        budgetPeriod === "weekly" && {
+                          borderColor: colors.primary,
+                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                        },
                       ]}
                       onPress={() => setBudgetPeriod("weekly")}
                     >
                       <Text
                         style={[
                           styles.periodText,
-                          budgetPeriod === "weekly" && styles.periodTextActive,
+                          { color: colors.textMuted },
+                          budgetPeriod === "weekly" && {
+                            color: colors.primary,
+                            fontWeight: "bold",
+                          },
                         ]}
                       >
                         Mingguan
@@ -479,14 +560,25 @@ export default function KategoriScreen() {
                     <TouchableOpacity
                       style={[
                         styles.periodBtn,
-                        budgetPeriod === "monthly" && styles.periodBtnActive,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
+                        budgetPeriod === "monthly" && {
+                          borderColor: colors.primary,
+                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                        },
                       ]}
                       onPress={() => setBudgetPeriod("monthly")}
                     >
                       <Text
                         style={[
                           styles.periodText,
-                          budgetPeriod === "monthly" && styles.periodTextActive,
+                          { color: colors.textMuted },
+                          budgetPeriod === "monthly" && {
+                            color: colors.primary,
+                            fontWeight: "bold",
+                          },
                         ]}
                       >
                         Bulanan
@@ -495,14 +587,25 @@ export default function KategoriScreen() {
                     <TouchableOpacity
                       style={[
                         styles.periodBtn,
-                        budgetPeriod === "custom" && styles.periodBtnActive,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
+                        budgetPeriod === "custom" && {
+                          borderColor: colors.primary,
+                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                        },
                       ]}
                       onPress={() => setBudgetPeriod("custom")}
                     >
                       <Text
                         style={[
                           styles.periodText,
-                          budgetPeriod === "custom" && styles.periodTextActive,
+                          { color: colors.textMuted },
+                          budgetPeriod === "custom" && {
+                            color: colors.primary,
+                            fontWeight: "bold",
+                          },
                         ]}
                       >
                         Kustom
@@ -513,10 +616,20 @@ export default function KategoriScreen() {
 
                 {budgetPeriod === "custom" && (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Durasi (Jumlah Bulan)</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>
+                      Durasi (Jumlah Bulan)
+                    </Text>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                          color: colors.textMain,
+                        },
+                      ]}
                       placeholder="Contoh: 3 atau 6 bulan"
+                      placeholderTextColor={colors.textMuted}
                       keyboardType="numeric"
                       value={budgetDuration}
                       onChangeText={setBudgetDuration}
@@ -527,7 +640,9 @@ export default function KategoriScreen() {
             )}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Pilih Warna Tema</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Pilih Warna Tema
+              </Text>
               <View style={styles.colorGrid}>
                 {colorOptions.map((col) => {
                   const isSelected = selectedColor === col;
@@ -537,7 +652,10 @@ export default function KategoriScreen() {
                       style={[
                         styles.colorCircle,
                         { backgroundColor: col },
-                        isSelected && styles.colorCircleActive,
+                        isSelected && [
+                          styles.colorCircleActive,
+                          { borderColor: colors.textMain },
+                        ],
                       ]}
                       onPress={() => setSelectedColor(col)}
                       activeOpacity={0.8}
@@ -552,7 +670,7 @@ export default function KategoriScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.saveBtn}
+              style={[styles.saveBtn, { backgroundColor: colors.primary }]}
               onPress={handleSaveCategory}
             >
               <Text style={styles.saveBtnText}>
@@ -567,20 +685,17 @@ export default function KategoriScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   addBtn: {
-    backgroundColor: colors.primary,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -599,31 +714,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   tabActiveExpense: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
+    backgroundColor: "#E53935",
+    borderColor: "#E53935",
   },
   tabActiveIncome: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: "#43A047",
+    borderColor: "#43A047",
   },
-  tabText: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+  tabText: { fontSize: 13, fontWeight: "600" },
   tabTextActive: { color: "#FFF" },
   container: { padding: 20 },
   card: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.card,
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   cardLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
   iconBox: {
@@ -637,23 +748,21 @@ const styles = StyleSheet.create({
   catName: {
     fontSize: 15,
     fontWeight: "bold",
-    color: colors.textMain,
     marginBottom: 2,
   },
-  catBudgetInfo: { fontSize: 12, color: colors.textMuted },
-  catRemaining: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  catType: { fontSize: 12, color: colors.textMuted },
+  catBudgetInfo: { fontSize: 12 },
+  catRemaining: { fontSize: 12, marginTop: 2 },
+  catType: { fontSize: 12 },
   actionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  actionIconBtn: { padding: 6, borderRadius: 8, backgroundColor: "#F5F5F5" },
+  actionIconBtn: { padding: 6, borderRadius: 8 },
   emptyState: { alignItems: "center", marginTop: 60 },
-  emptyText: { fontSize: 14, color: colors.textMuted, marginTop: 10 },
+  emptyText: { fontSize: 14, marginTop: 10 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -665,26 +774,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
     paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   inputGroup: { marginBottom: 16 },
   label: {
     fontSize: 13,
-    color: colors.textMuted,
     marginBottom: 8,
     fontWeight: "500",
   },
   input: {
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 15,
-    color: colors.textMain,
   },
   typeRow: { flexDirection: "row", gap: 10 },
   typeBtn: {
@@ -692,33 +796,27 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FAFAFA",
   },
   typeBtnExpenseActive: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
+    backgroundColor: "#E53935",
+    borderColor: "#E53935",
   },
   typeBtnIncomeActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: "#43A047",
+    borderColor: "#43A047",
   },
-  typeText: { fontSize: 14, fontWeight: "600", color: colors.textMain },
+  typeText: { fontSize: 14, fontWeight: "600" },
   periodRow: { flexDirection: "row", gap: 8 },
   periodBtn: {
     flex: 1,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 10,
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
   },
-  periodBtnActive: { borderColor: colors.primary, backgroundColor: "#E8F5E9" },
-  periodText: { fontSize: 13, fontWeight: "500", color: colors.textMuted },
-  periodTextActive: { color: colors.primary, fontWeight: "bold" },
+  periodText: { fontSize: 13, fontWeight: "500" },
   colorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   colorCircle: {
     width: 38,
@@ -734,11 +832,9 @@ const styles = StyleSheet.create({
   },
   colorCircleActive: {
     borderWidth: 3,
-    borderColor: "#212121",
     transform: [{ scale: 1.12 }],
   },
   saveBtn: {
-    backgroundColor: colors.primary,
     height: 50,
     borderRadius: 12,
     alignItems: "center",

@@ -14,28 +14,20 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { Debt, useTransactions } from "../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-  danger: "#E53935",
-  info: "#1E88E5",
-};
 
 export default function DebtsScreen() {
   const router = useRouter();
   const { debts, addDebt, toggleDebtPaid, deleteDebt, wallets } =
     useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const [activeTab, setActiveTab] = useState<"lend" | "borrow">("lend");
   const [isModalVisible, setModalVisible] = useState(false);
 
-  // Modal State untuk Pelunasan Aman
+  // State Modal untuk Pelunasan Aman
   const [isPayModalVisible, setPayModalVisible] = useState(false);
   const [selectedDebtForPay, setSelectedDebtForPay] = useState<Debt | null>(
     null,
@@ -140,12 +132,16 @@ export default function DebtsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Utang & Piutang</Text>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Utang & Piutang
+        </Text>
         <TouchableOpacity onPress={() => setModalVisible(true)}>
           <Ionicons
             name="add-circle-outline"
@@ -158,12 +154,17 @@ export default function DebtsScreen() {
       {/* Tab Filter */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tabBtn, activeTab === "lend" && styles.tabActiveLend]}
+          style={[
+            styles.tabBtn,
+            { backgroundColor: colors.card, borderColor: colors.border },
+            activeTab === "lend" && styles.tabActiveLend,
+          ]}
           onPress={() => setActiveTab("lend")}
         >
           <Text
             style={[
               styles.tabText,
+              { color: colors.textMuted },
               activeTab === "lend" && styles.tabTextActive,
             ]}
           >
@@ -173,6 +174,7 @@ export default function DebtsScreen() {
         <TouchableOpacity
           style={[
             styles.tabBtn,
+            { backgroundColor: colors.card, borderColor: colors.border },
             activeTab === "borrow" && styles.tabActiveBorrow,
           ]}
           onPress={() => setActiveTab("borrow")}
@@ -180,6 +182,7 @@ export default function DebtsScreen() {
           <Text
             style={[
               styles.tabText,
+              { color: colors.textMuted },
               activeTab === "borrow" && styles.tabTextActive,
             ]}
           >
@@ -195,7 +198,7 @@ export default function DebtsScreen() {
         {filteredDebts.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="wallet-outline" size={48} color={colors.border} />
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
               Belum ada catatan {activeTab === "lend" ? "piutang" : "utang"}.
             </Text>
           </View>
@@ -203,19 +206,24 @@ export default function DebtsScreen() {
           filteredDebts.map((item) => (
             <View
               key={item.id}
-              style={[styles.card, item.isPaid && { opacity: 0.65 }]}
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                item.isPaid && { opacity: 0.65 },
+              ]}
             >
               <View style={styles.cardHeader}>
                 <View>
                   <Text
                     style={[
                       styles.cardName,
+                      { color: colors.textMain },
                       item.isPaid && { textDecorationLine: "line-through" },
                     ]}
                   >
                     {item.name}
                   </Text>
-                  <Text style={styles.cardDate}>
+                  <Text style={[styles.cardDate, { color: colors.textMuted }]}>
                     Dompet: {getWalletName(item.walletId)} • Tenggat:{" "}
                     {item.dueDate}
                   </Text>
@@ -234,7 +242,8 @@ export default function DebtsScreen() {
                   style={[
                     styles.cardAmount,
                     {
-                      color: activeTab === "lend" ? colors.info : colors.danger,
+                      color:
+                        activeTab === "lend" ? colors.transfer : colors.danger,
                     },
                   ]}
                 >
@@ -244,7 +253,12 @@ export default function DebtsScreen() {
                 <TouchableOpacity
                   style={[
                     styles.statusBtn,
-                    item.isPaid ? styles.btnPaid : styles.btnUnpaid,
+                    item.isPaid
+                      ? styles.btnPaid
+                      : {
+                          backgroundColor: isDarkMode ? "#3E2723" : "#FFF8E1",
+                          borderColor: isDarkMode ? "#5D4037" : "#FFE082",
+                        },
                   ]}
                   onPress={() => handlePayClick(item)}
                   activeOpacity={0.8}
@@ -266,7 +280,9 @@ export default function DebtsScreen() {
                 </TouchableOpacity>
               </View>
               {item.note && (
-                <Text style={styles.cardNote}>Catatan: {item.note}</Text>
+                <Text style={[styles.cardNote, { color: colors.textMuted }]}>
+                  Catatan: {item.note}
+                </Text>
               )}
             </View>
           ))
@@ -286,11 +302,16 @@ export default function DebtsScreen() {
             onPress={() => setModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.card }]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
                   Tambah {activeTab === "lend" ? "Piutang" : "Utang"}
                 </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -299,20 +320,40 @@ export default function DebtsScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nama Orang</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nama Orang
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="Contoh: Budi"
+                  placeholderTextColor={colors.textMuted}
                   value={name}
                   onChangeText={setName}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nominal (Rp)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nominal (Rp)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="0"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   value={amount}
                   onChangeText={setAmount}
@@ -320,7 +361,7 @@ export default function DebtsScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
                   {activeTab === "lend"
                     ? "Sumber Dompet (Uang Keluar)"
                     : "Dompet Tujuan (Uang Masuk)"}
@@ -335,6 +376,10 @@ export default function DebtsScreen() {
                       key={w.id}
                       style={[
                         styles.walletChip,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
                         selectedWalletId === w.id && styles.walletChipActive,
                       ]}
                       onPress={() => setSelectedWalletId(w.id)}
@@ -350,6 +395,7 @@ export default function DebtsScreen() {
                       <Text
                         style={[
                           styles.walletChipText,
+                          { color: colors.textMain },
                           selectedWalletId === w.id && { color: "#FFF" },
                         ]}
                       >
@@ -361,16 +407,29 @@ export default function DebtsScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Catatan (Opsional)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Catatan (Opsional)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="Contoh: Cicilan bulanan"
+                  placeholderTextColor={colors.textMuted}
                   value={note}
                   onChangeText={setNote}
                 />
               </View>
 
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+                onPress={handleSave}
+              >
                 <Text style={styles.saveBtnText}>Simpan Catatan</Text>
               </TouchableOpacity>
             </View>
@@ -390,24 +449,35 @@ export default function DebtsScreen() {
             onPress={() => setPayModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.card }]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Konfirmasi Pelunasan</Text>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                  Konfirmasi Pelunasan
+                </Text>
                 <TouchableOpacity onPress={() => setPayModalVisible(false)}>
                   <Ionicons name="close" size={24} color={colors.textMain} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.payModalSubtext}>
+              <Text
+                style={[styles.payModalSubtext, { color: colors.textMuted }]}
+              >
                 {selectedDebtForPay?.type === "lend"
                   ? `Pilih dompet tempat dana pelunasan dari ${selectedDebtForPay?.name} diterima:`
                   : `Pilih dompet sumber dana untuk melunasi utang ke ${selectedDebtForPay?.name}:`}
               </Text>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Pilih Dompet</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Pilih Dompet
+                </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -418,6 +488,10 @@ export default function DebtsScreen() {
                       key={w.id}
                       style={[
                         styles.walletChip,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
                         payWalletId === w.id && styles.walletChipActive,
                       ]}
                       onPress={() => setPayWalletId(w.id)}
@@ -431,6 +505,7 @@ export default function DebtsScreen() {
                       <Text
                         style={[
                           styles.walletChipText,
+                          { color: colors.textMain },
                           payWalletId === w.id && { color: "#FFF" },
                         ]}
                       >
@@ -443,13 +518,26 @@ export default function DebtsScreen() {
 
               <View style={styles.payModalButtonRow}>
                 <TouchableOpacity
-                  style={styles.cancelBtn}
+                  style={[
+                    styles.cancelBtn,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={() => setPayModalVisible(false)}
                 >
-                  <Text style={styles.cancelBtnText}>Batal</Text>
+                  <Text
+                    style={[styles.cancelBtnText, { color: colors.textMuted }]}
+                  >
+                    Batal
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.confirmPayBtn}
+                  style={[
+                    styles.confirmPayBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
                   onPress={handleConfirmPayment}
                 >
                   <Text style={styles.confirmPayBtnText}>Tandai Lunas</Text>
@@ -464,7 +552,7 @@ export default function DebtsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -473,7 +561,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   tabContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
@@ -485,25 +573,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
   },
-  tabActiveLend: { backgroundColor: colors.info, borderColor: colors.info },
+  tabActiveLend: { backgroundColor: "#1E88E5", borderColor: "#1E88E5" },
   tabActiveBorrow: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
+    backgroundColor: "#E53935",
+    borderColor: "#E53935",
   },
-  tabText: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+  tabText: { fontSize: 13, fontWeight: "600" },
   tabTextActive: { color: "#FFF" },
   container: { paddingHorizontal: 20 },
   card: {
-    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -516,8 +600,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 10,
   },
-  cardName: { fontSize: 15, fontWeight: "bold", color: colors.textMain },
-  cardDate: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  cardName: { fontSize: 15, fontWeight: "bold" },
+  cardDate: { fontSize: 11, marginTop: 2 },
   cardBody: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -526,7 +610,6 @@ const styles = StyleSheet.create({
   cardAmount: { fontSize: 16, fontWeight: "bold" },
   cardNote: {
     fontSize: 12,
-    color: colors.textMuted,
     marginTop: 8,
     fontStyle: "italic",
   },
@@ -537,10 +620,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
-  },
-  btnUnpaid: {
-    backgroundColor: "#FFF8E1",
-    borderColor: "#FFE082",
   },
   btnPaid: {
     backgroundColor: "#43A047",
@@ -555,14 +634,13 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   emptyState: { alignItems: "center", marginTop: 60 },
-  emptyText: { fontSize: 14, color: colors.textMuted, marginTop: 10 },
+  emptyText: { fontSize: 14, marginTop: 10 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -573,13 +651,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
     paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   payModalSubtext: {
     fontSize: 14,
-    color: colors.textMuted,
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -593,17 +669,14 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FAFAFA",
   },
-  cancelBtnText: { color: colors.textMuted, fontSize: 15, fontWeight: "bold" },
+  cancelBtnText: { fontSize: 15, fontWeight: "bold" },
   confirmPayBtn: {
     flex: 1,
     height: 50,
     borderRadius: 12,
-    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -611,19 +684,15 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 16 },
   label: {
     fontSize: 13,
-    color: colors.textMuted,
     marginBottom: 6,
     fontWeight: "500",
   },
   input: {
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 15,
-    color: colors.textMain,
   },
   walletChip: {
     flexDirection: "row",
@@ -631,18 +700,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     marginRight: 8,
   },
   walletChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: "#43A047",
+    borderColor: "#43A047",
   },
-  walletChipText: { fontSize: 13, fontWeight: "600", color: colors.textMain },
+  walletChipText: { fontSize: 13, fontWeight: "600" },
   saveBtn: {
-    backgroundColor: colors.primary,
     height: 50,
     borderRadius: 12,
     alignItems: "center",

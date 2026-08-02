@@ -2,28 +2,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { useTransactions } from "../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-};
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { transactions, categories } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const month = params.month !== undefined ? Number(params.month) : "all";
   const year = params.year ? Number(params.year) : new Date().getFullYear();
@@ -75,21 +69,29 @@ export default function CategoryDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Rincian Kategori</Text>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Rincian Kategori
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.totalLabel}>Total Pengeluaran Periode Ini</Text>
-        <Text style={styles.totalAmount}>{formatRp(totalExpense)}</Text>
+        <Text style={[styles.totalLabel, { color: colors.textMuted }]}>
+          Total Pengeluaran Periode Ini
+        </Text>
+        <Text style={[styles.totalAmount, { color: colors.textMain }]}>
+          {formatRp(totalExpense)}
+        </Text>
 
         {categoryStats.length === 0 ? (
           <View style={styles.emptyState}>
@@ -98,7 +100,7 @@ export default function CategoryDetailScreen() {
               size={48}
               color={colors.border}
             />
-            <Text style={styles.emptyStateText}>
+            <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>
               Tidak ada data pengeluaran
             </Text>
           </View>
@@ -107,15 +109,31 @@ export default function CategoryDetailScreen() {
             const catInfo = categoryIcons[item.name] || {
               icon: "pricetag",
               color: "#757575",
-              bg: "#EEEEEE",
+              bg: isDarkMode ? "#2C2C2C" : "#EEEEEE",
             };
 
             return (
-              <View key={item.name} style={styles.categoryItem}>
+              <View
+                key={item.name}
+                style={[
+                  styles.categoryItem,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
                 <View style={styles.categoryHeader}>
                   <View style={styles.categoryInfo}>
                     <View
-                      style={[styles.iconBg, { backgroundColor: catInfo.bg }]}
+                      style={[
+                        styles.iconBg,
+                        {
+                          backgroundColor:
+                            catInfo.bg !== "#EEEEEE"
+                              ? catInfo.bg
+                              : isDarkMode
+                                ? "#2C2C2C"
+                                : "#EEEEEE",
+                        },
+                      ]}
                     >
                       <Ionicons
                         name={catInfo.icon as any}
@@ -124,17 +142,36 @@ export default function CategoryDetailScreen() {
                       />
                     </View>
                     <View>
-                      <Text style={styles.categoryName}>{item.name}</Text>
-                      <Text style={styles.categoryPercentage}>
+                      <Text
+                        style={[
+                          styles.categoryName,
+                          { color: colors.textMain },
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.categoryPercentage,
+                          { color: colors.textMuted },
+                        ]}
+                      >
                         {item.percentage}% dari total
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.categoryAmount}>
+                  <Text
+                    style={[styles.categoryAmount, { color: colors.textMain }]}
+                  >
                     {formatRp(item.amount)}
                   </Text>
                 </View>
-                <View style={styles.subProgressBg}>
+                <View
+                  style={[
+                    styles.subProgressBg,
+                    { backgroundColor: isDarkMode ? "#2C2C2C" : colors.border },
+                  ]}
+                >
                   <View
                     style={[
                       styles.subProgressFill,
@@ -155,7 +192,7 @@ export default function CategoryDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -164,22 +201,19 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   backButton: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { padding: 20 },
-  totalLabel: { fontSize: 13, color: colors.textMuted, marginBottom: 4 },
+  totalLabel: { fontSize: 13, marginBottom: 4 },
   totalAmount: {
     fontSize: 24,
     fontWeight: "bold",
-    color: colors.textMain,
     marginBottom: 24,
   },
   categoryItem: {
-    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   categoryHeader: {
     flexDirection: "row",
@@ -196,16 +230,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  categoryName: { fontSize: 15, fontWeight: "600", color: colors.textMain },
-  categoryPercentage: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  categoryAmount: { fontSize: 15, fontWeight: "bold", color: colors.textMain },
+  categoryName: { fontSize: 15, fontWeight: "600" },
+  categoryPercentage: { fontSize: 12, marginTop: 2 },
+  categoryAmount: { fontSize: 15, fontWeight: "bold" },
   subProgressBg: {
     height: 6,
-    backgroundColor: colors.border,
     borderRadius: 3,
     overflow: "hidden",
   },
   subProgressFill: { height: "100%", borderRadius: 3 },
   emptyState: { alignItems: "center", justifyContent: "center", marginTop: 50 },
-  emptyStateText: { marginTop: 10, fontSize: 15, color: colors.textMuted },
+  emptyStateText: { marginTop: 10, fontSize: 15 },
 });

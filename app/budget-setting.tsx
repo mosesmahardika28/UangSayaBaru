@@ -13,20 +13,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { useTransactions } from "../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-};
 
 export default function BudgetSettingScreen() {
   const router = useRouter();
   const { budget, setBudget } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const [amount, setAmount] = useState(
     budget?.amount ? budget.amount.toString() : "",
@@ -63,36 +57,55 @@ export default function BudgetSettingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backBtn}
           >
             <Ionicons name="arrow-back" size={24} color={colors.textMain} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Atur Anggaran</Text>
+          <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+            Atur Anggaran
+          </Text>
           <View style={{ width: 24 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.label}>Pilih Periode Anggaran</Text>
+          <Text style={[styles.label, { color: colors.textMain }]}>
+            Pilih Periode Anggaran
+          </Text>
           <View style={styles.periodRow}>
             <TouchableOpacity
               style={[
                 styles.periodBtn,
-                period === "monthly" && styles.periodBtnActive,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                period === "monthly" && {
+                  borderColor: colors.primary,
+                  backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                },
               ]}
               onPress={() => setPeriod("monthly")}
             >
               <Text
                 style={[
                   styles.periodText,
-                  period === "monthly" && styles.periodTextActive,
+                  { color: colors.textMuted },
+                  period === "monthly" && {
+                    color: colors.primary,
+                    fontWeight: "bold",
+                  },
                 ]}
               >
                 Per Bulan
@@ -102,14 +115,22 @@ export default function BudgetSettingScreen() {
             <TouchableOpacity
               style={[
                 styles.periodBtn,
-                period === "custom" && styles.periodBtnActive,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                period === "custom" && {
+                  borderColor: colors.primary,
+                  backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                },
               ]}
               onPress={() => setPeriod("custom")}
             >
               <Text
                 style={[
                   styles.periodText,
-                  period === "custom" && styles.periodTextActive,
+                  { color: colors.textMuted },
+                  period === "custom" && {
+                    color: colors.primary,
+                    fontWeight: "bold",
+                  },
                 ]}
               >
                 Beberapa Bulan
@@ -119,14 +140,22 @@ export default function BudgetSettingScreen() {
             <TouchableOpacity
               style={[
                 styles.periodBtn,
-                period === "yearly" && styles.periodBtnActive,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                period === "yearly" && {
+                  borderColor: colors.primary,
+                  backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                },
               ]}
               onPress={() => setPeriod("yearly")}
             >
               <Text
                 style={[
                   styles.periodText,
-                  period === "yearly" && styles.periodTextActive,
+                  { color: colors.textMuted },
+                  period === "yearly" && {
+                    color: colors.primary,
+                    fontWeight: "bold",
+                  },
                 ]}
               >
                 Per Tahun
@@ -136,10 +165,20 @@ export default function BudgetSettingScreen() {
 
           {period === "custom" && (
             <>
-              <Text style={styles.label}>Jumlah Bulan Durasi</Text>
+              <Text style={[styles.label, { color: colors.textMain }]}>
+                Jumlah Bulan Durasi
+              </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    color: colors.textMain,
+                  },
+                ]}
                 placeholder="Contoh: 3 atau 6"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="numeric"
                 value={durationMonths}
                 onChangeText={setDurationMonths}
@@ -147,16 +186,29 @@ export default function BudgetSettingScreen() {
             </>
           )}
 
-          <Text style={styles.label}>Batas Nominal Anggaran (Rp)</Text>
+          <Text style={[styles.label, { color: colors.textMain }]}>
+            Batas Nominal Anggaran (Rp)
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.textMain,
+              },
+            ]}
             placeholder="Contoh: 2000000"
+            placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
           />
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <TouchableOpacity
+            style={[styles.saveButton, { backgroundColor: colors.primary }]}
+            onPress={handleSave}
+          >
             <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -166,24 +218,21 @@ export default function BudgetSettingScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { padding: 20 },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textMain,
     marginBottom: 8,
     marginTop: 12,
   },
@@ -196,26 +245,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 10,
     alignItems: "center",
     marginHorizontal: 4,
-    backgroundColor: colors.card,
   },
-  periodBtnActive: { borderColor: colors.primary, backgroundColor: "#E8F5E9" },
-  periodText: { fontSize: 13, fontWeight: "500", color: colors.textMuted },
-  periodTextActive: { color: colors.primary, fontWeight: "bold" },
+  periodText: { fontSize: 13, fontWeight: "500" },
   input: {
-    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 10,
     padding: 14,
     fontSize: 15,
-    color: colors.textMain,
   },
   saveButton: {
-    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",

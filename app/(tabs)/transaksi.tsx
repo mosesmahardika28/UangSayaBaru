@@ -13,19 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { Transaction, useTransactions } from "../../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  primary: "#43A047",
-  textMain: "#212121",
-  textMuted: "#757575",
-  incomeText: "#2E7D32",
-  expenseText: "#C62828",
-  border: "#EEEEEE",
-  transfer: "#1E88E5",
-};
 
 const monthsNames = [
   "Januari",
@@ -46,6 +35,8 @@ export default function TransaksiScreen() {
   const router = useRouter();
   const { transactions, wallets, categories, deleteTransaction } =
     useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number | "all">(
@@ -71,7 +62,11 @@ export default function TransaksiScreen() {
     const c = categories.find((item) => item.name === catName);
     return c
       ? { icon: c.icon, color: c.color, bg: c.bg }
-      : { icon: "pricetag-outline", color: "#757575", bg: "#EEEEEE" };
+      : {
+          icon: "pricetag-outline",
+          color: colors.textMuted,
+          bg: colors.border,
+        };
   };
 
   // Logika Filter Multi-lapis
@@ -147,21 +142,35 @@ export default function TransaksiScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Riwayat Transaksi</Text>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Riwayat Transaksi
+        </Text>
         <TouchableOpacity
-          style={styles.monthSelector}
+          style={[
+            styles.monthSelector,
+            { backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9" },
+          ]}
           onPress={() => setIsModalVisible(true)}
         >
-          <Text style={styles.monthText}>{displayText}</Text>
+          <Text style={[styles.monthText, { color: colors.primary }]}>
+            {displayText}
+          </Text>
           <Ionicons name="chevron-down" size={16} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.container}>
         {/* Kolom Pencarian */}
-        <View style={styles.searchContainer}>
+        <View
+          style={[
+            styles.searchContainer,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <Ionicons
             name="search"
             size={20}
@@ -169,9 +178,9 @@ export default function TransaksiScreen() {
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.textMain }]}
             placeholder="Cari transaksi atau catatan..."
-            placeholderTextColor="#BDBDBD"
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -192,13 +201,18 @@ export default function TransaksiScreen() {
             <TouchableOpacity
               style={[
                 styles.walletPill,
-                selectedWalletId === "all" && styles.walletPillActive,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                selectedWalletId === "all" && {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primary,
+                },
               ]}
               onPress={() => setSelectedWalletId("all")}
             >
               <Text
                 style={[
                   styles.walletPillText,
+                  { color: colors.textMuted },
                   selectedWalletId === "all" && styles.walletPillTextActive,
                 ]}
               >
@@ -211,13 +225,18 @@ export default function TransaksiScreen() {
                 key={w.id}
                 style={[
                   styles.walletPill,
-                  selectedWalletId === w.id && styles.walletPillActive,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                  selectedWalletId === w.id && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
                 ]}
                 onPress={() => setSelectedWalletId(w.id)}
               >
                 <Text
                   style={[
                     styles.walletPillText,
+                    { color: colors.textMuted },
                     selectedWalletId === w.id && styles.walletPillTextActive,
                   ]}
                 >
@@ -237,7 +256,9 @@ export default function TransaksiScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="search-outline" size={48} color={colors.border} />
-              <Text style={styles.emptyStateText}>
+              <Text
+                style={[styles.emptyStateText, { color: colors.textMuted }]}
+              >
                 Tidak ada transaksi yang cocok
               </Text>
             </View>
@@ -252,14 +273,23 @@ export default function TransaksiScreen() {
 
             return (
               <TouchableOpacity
-                style={styles.transactionItem}
+                style={[
+                  styles.transactionItem,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 activeOpacity={0.7}
                 onLongPress={() => handleLongPressTransaction(t)}
               >
                 <View
                   style={[
                     styles.iconBg,
-                    { backgroundColor: isTransfer ? "#E3F2FD" : catInfo.bg },
+                    {
+                      backgroundColor: isTransfer
+                        ? isDarkMode
+                          ? "#1C3144"
+                          : "#E3F2FD"
+                        : catInfo.bg,
+                    },
                   ]}
                 >
                   <Ionicons
@@ -271,15 +301,30 @@ export default function TransaksiScreen() {
                   />
                 </View>
                 <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionTitle}>
+                  <Text
+                    style={[
+                      styles.transactionTitle,
+                      { color: colors.textMain },
+                    ]}
+                  >
                     {isTransfer
                       ? `Transfer (${fromWalletName} ➔ ${toWalletName})`
                       : t.category}
                   </Text>
-                  <Text style={styles.transactionSubtitle}>
+                  <Text
+                    style={[
+                      styles.transactionSubtitle,
+                      { color: colors.textMuted },
+                    ]}
+                  >
                     {fromWalletName} {t.note ? `• ${t.note}` : ""}
                   </Text>
-                  <Text style={styles.transactionDate}>
+                  <Text
+                    style={[
+                      styles.transactionDate,
+                      { color: colors.textMuted },
+                    ]}
+                  >
                     {new Date(t.date).toLocaleDateString("id-ID", {
                       day: "numeric",
                       month: "short",
@@ -325,11 +370,15 @@ export default function TransaksiScreen() {
           onPress={() => setIsModalVisible(false)}
         >
           <View
-            style={styles.modalContent}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
             onStartShouldSetResponder={() => true}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Pilih Periode</Text>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                Pilih Periode
+              </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMain} />
               </TouchableOpacity>
@@ -342,7 +391,10 @@ export default function TransaksiScreen() {
                 <TouchableOpacity
                   style={[
                     styles.modalItem,
-                    selectedMonth === item.value && styles.modalItemActive,
+                    { borderBottomColor: colors.border },
+                    selectedMonth === item.value && {
+                      backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                    },
                   ]}
                   onPress={() => {
                     setSelectedMonth(item.value as any);
@@ -352,6 +404,7 @@ export default function TransaksiScreen() {
                   <Text
                     style={[
                       styles.modalItemText,
+                      { color: colors.textMain },
                       selectedMonth === item.value &&
                         styles.modalItemTextActive,
                     ]}
@@ -376,26 +429,23 @@ export default function TransaksiScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: colors.background,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
   monthSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E8F5E9",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   monthText: {
-    color: colors.primary,
     fontWeight: "600",
     marginRight: 4,
     fontSize: 13,
@@ -404,40 +454,30 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: 16,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: colors.textMain },
+  searchInput: { flex: 1, fontSize: 15 },
   walletPill: {
-    backgroundColor: colors.card,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
     marginRight: 10,
   },
-  walletPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  walletPillText: { fontSize: 13, color: colors.textMuted, fontWeight: "500" },
+  walletPillText: { fontSize: 13, fontWeight: "500" },
   walletPillTextActive: { color: "#FFFFFF", fontWeight: "bold" },
   transactionItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   iconBg: {
     width: 44,
@@ -451,25 +491,22 @@ const styles = StyleSheet.create({
   transactionTitle: {
     fontSize: 15,
     fontWeight: "bold",
-    color: colors.textMain,
     marginBottom: 2,
   },
   transactionSubtitle: {
     fontSize: 13,
-    color: colors.textMuted,
     marginBottom: 4,
   },
-  transactionDate: { fontSize: 11, color: "#9E9E9E", fontWeight: "500" },
+  transactionDate: { fontSize: 11, fontWeight: "500" },
   transactionAmount: { fontSize: 15, fontWeight: "bold" },
   emptyState: { alignItems: "center", justifyContent: "center", marginTop: 60 },
-  emptyStateText: { marginTop: 12, fontSize: 15, color: colors.textMuted },
+  emptyStateText: { marginTop: 12, fontSize: 15 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -481,10 +518,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
     paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   modalItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -492,10 +528,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
     borderRadius: 8,
   },
-  modalItemActive: { backgroundColor: "#E8F5E9" },
-  modalItemText: { fontSize: 16, color: colors.textMain },
-  modalItemTextActive: { color: colors.primary, fontWeight: "bold" },
+  modalItemText: { fontSize: 16 },
+  modalItemTextActive: { fontWeight: "bold" },
 });

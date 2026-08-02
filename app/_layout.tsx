@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import LockScreen from "../components/LockScreen";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { ThemeProvider } from "../context/ThemeContext"; // <-- Import ThemeProvider
 import { TransactionProvider } from "../context/TransactionContext";
 
 // Komponen perantara untuk mengecek status kunci
@@ -25,8 +26,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

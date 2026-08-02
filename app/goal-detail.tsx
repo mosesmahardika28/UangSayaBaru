@@ -11,20 +11,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { useTransactions } from "../context/TransactionContext";
-
-const baseColors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  border: "#EEEEEE",
-  success: "#2E7D32",
-  danger: "#E53935",
-};
 
 export default function GoalDetailScreen() {
   const router = useRouter();
@@ -38,6 +29,8 @@ export default function GoalDetailScreen() {
     updateGoal,
     deleteGoal,
   } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const goal = goals.find((g) => g.id === id);
 
@@ -58,17 +51,21 @@ export default function GoalDetailScreen() {
 
   if (!goal) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+      >
         <View style={styles.emptyContainer}>
           <Ionicons
             name="alert-circle-outline"
             size={48}
-            color={baseColors.textMuted}
+            color={colors.textMuted}
           />
-          <Text style={styles.emptyText}>Goal tidak ditemukan.</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            Goal tidak ditemukan.
+          </Text>
           <TouchableOpacity
             onPress={() => router.replace("/goals" as any)}
-            style={[styles.backBtnSimple, { backgroundColor: "#43A047" }]}
+            style={[styles.backBtnSimple, { backgroundColor: colors.primary }]}
           >
             <Text style={{ color: "#FFF", fontWeight: "bold" }}>
               Kembali ke Daftar
@@ -194,20 +191,24 @@ export default function GoalDetailScreen() {
     );
   };
 
-  const goalColor = goal.color || "#43A047";
+  const goalColor = goal.color || colors.primary;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-          <Ionicons name="arrow-back" size={24} color={baseColors.textMain} />
+          <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detail Goal</Text>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Detail Goal
+        </Text>
         <TouchableOpacity onPress={handleMenuPress} style={styles.iconBtn}>
           <Ionicons
             name="ellipsis-vertical"
             size={20}
-            color={baseColors.textMain}
+            color={colors.textMain}
           />
         </TouchableOpacity>
       </View>
@@ -223,17 +224,25 @@ export default function GoalDetailScreen() {
           >
             <Ionicons name={goal.icon as any} size={48} color={goalColor} />
           </View>
-          <Text style={styles.goalName}>{goal.name}</Text>
+          <Text style={[styles.goalName, { color: colors.textMain }]}>
+            {goal.name}
+          </Text>
         </View>
 
         {/* Informasi Target vs Terkumpul */}
         <View style={styles.amountInfoRow}>
           <View>
-            <Text style={styles.infoLabel}>Target</Text>
-            <Text style={styles.targetVal}>{formatRp(goal.targetAmount)}</Text>
+            <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+              Target
+            </Text>
+            <Text style={[styles.targetVal, { color: colors.textMain }]}>
+              {formatRp(goal.targetAmount)}
+            </Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.infoLabel}>Terkumpul</Text>
+            <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+              Terkumpul
+            </Text>
             <Text style={[styles.collectedVal, { color: goalColor }]}>
               {formatRp(goal.currentAmount)}
             </Text>
@@ -245,7 +254,12 @@ export default function GoalDetailScreen() {
           <Text style={[styles.percentageText, { color: goalColor }]}>
             {percentage}%
           </Text>
-          <View style={styles.progressBarBg}>
+          <View
+            style={[
+              styles.progressBarBg,
+              { backgroundColor: isDarkMode ? "#2C2C2C" : "#E0E0E0" },
+            ]}
+          >
             <View
               style={[
                 styles.progressBarFill,
@@ -256,18 +270,32 @@ export default function GoalDetailScreen() {
         </View>
 
         {/* Sisa & Breakdown Dompet */}
-        <View style={styles.metaBox}>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Kekurangan Uang</Text>
-            <Text style={styles.metaValue}>{formatRp(remaining)}</Text>
+        <View
+          style={[
+            styles.metaBox,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.metaRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+              Kekurangan Uang
+            </Text>
+            <Text style={[styles.metaValue, { color: colors.textMain }]}>
+              {formatRp(remaining)}
+            </Text>
           </View>
 
           <View style={{ paddingVertical: 14 }}>
-            <Text style={[styles.metaLabel, { marginBottom: 8 }]}>
+            <Text
+              style={[
+                styles.metaLabel,
+                { color: colors.textMuted, marginBottom: 8 },
+              ]}
+            >
               Sumber Tabungan:
             </Text>
             {Object.keys(walletBreakdown).length === 0 ? (
-              <Text style={{ fontSize: 13, color: baseColors.textMuted }}>
+              <Text style={{ fontSize: 13, color: colors.textMuted }}>
                 Belum ada dana masuk.
               </Text>
             ) : (
@@ -285,14 +313,14 @@ export default function GoalDetailScreen() {
                       marginBottom: 4,
                     }}
                   >
-                    <Text style={{ fontSize: 13, color: baseColors.textMain }}>
+                    <Text style={{ fontSize: 13, color: colors.textMain }}>
                       • {wObj ? wObj.name : "Dompet"}
                     </Text>
                     <Text
                       style={{
                         fontSize: 13,
                         fontWeight: "bold",
-                        color: baseColors.textMain,
+                        color: colors.textMain,
                       }}
                     >
                       {formatRp(amount)}
@@ -305,9 +333,13 @@ export default function GoalDetailScreen() {
         </View>
 
         {/* Riwayat Deposit & Withdraw */}
-        <Text style={styles.sectionTitle}>Riwayat Transaksi Target</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textMain }]}>
+          Riwayat Transaksi Target
+        </Text>
         {goalTransactions.length === 0 ? (
-          <Text style={styles.noHistoryText}>Belum ada riwayat aktivitas.</Text>
+          <Text style={[styles.noHistoryText, { color: colors.textMuted }]}>
+            Belum ada riwayat aktivitas.
+          </Text>
         ) : (
           goalTransactions.map((item) => {
             const isDeposit = item.toWalletId === "system_goal";
@@ -316,22 +348,30 @@ export default function GoalDetailScreen() {
             );
 
             return (
-              <View key={item.id} style={styles.historyItem}>
+              <View
+                key={item.id}
+                style={[
+                  styles.historyItem,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Ionicons
                     name={isDeposit ? "arrow-down-circle" : "arrow-up-circle"}
                     size={24}
-                    color={isDeposit ? baseColors.success : baseColors.danger}
+                    color={isDeposit ? colors.incomeText : colors.expenseText}
                     style={{ marginRight: 10 }}
                   />
                   <View>
-                    <Text style={styles.historyDate}>
+                    <Text
+                      style={[styles.historyDate, { color: colors.textMain }]}
+                    >
                       {isDeposit ? "Masuk dari " : "Cair ke "}
                       <Text style={{ fontWeight: "bold" }}>
                         {wObj ? wObj.name : "Dompet"}
                       </Text>
                     </Text>
-                    <Text style={{ fontSize: 12, color: baseColors.textMuted }}>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>
                       {new Date(item.date).toLocaleDateString("id-ID", {
                         day: "numeric",
                         month: "short",
@@ -344,7 +384,7 @@ export default function GoalDetailScreen() {
                   style={[
                     styles.historyAmount,
                     {
-                      color: isDeposit ? baseColors.success : baseColors.danger,
+                      color: isDeposit ? colors.incomeText : colors.expenseText,
                     },
                   ]}
                 >
@@ -360,7 +400,15 @@ export default function GoalDetailScreen() {
       </ScrollView>
 
       {/* Tombol Deposit & Withdraw di Bawah */}
-      <View style={styles.footerButtonWrapper}>
+      <View
+        style={[
+          styles.footerButtonWrapper,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[styles.depositButton, { backgroundColor: goalColor }]}
           onPress={() => openActionModal("deposit")}
@@ -377,19 +425,20 @@ export default function GoalDetailScreen() {
         <TouchableOpacity
           style={[
             styles.depositButton,
-            { backgroundColor: "#ECEFF1", marginLeft: 10 },
+            {
+              backgroundColor: isDarkMode ? "#2C2C2C" : "#ECEFF1",
+              marginLeft: 10,
+            },
           ]}
           onPress={() => openActionModal("withdraw")}
         >
           <Ionicons
             name="arrow-undo-outline"
             size={20}
-            color={baseColors.textMain}
+            color={colors.textMain}
             style={{ marginRight: 6 }}
           />
-          <Text
-            style={[styles.depositButtonText, { color: baseColors.textMain }]}
-          >
+          <Text style={[styles.depositButtonText, { color: colors.textMain }]}>
             Cairkan
           </Text>
         </TouchableOpacity>
@@ -407,26 +456,27 @@ export default function GoalDetailScreen() {
             onPress={() => setActionModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.card }]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
                   {actionType === "deposit"
                     ? "Tambah Tabungan"
                     : "Cairkan Target"}
                 </Text>
                 <TouchableOpacity onPress={() => setActionModalVisible(false)}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={baseColors.textMain}
-                  />
+                  <Ionicons name="close" size={24} color={colors.textMain} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
                   {actionType === "deposit"
                     ? "Pilih Dompet Sumber"
                     : "Pilih Dompet Tujuan"}
@@ -437,6 +487,10 @@ export default function GoalDetailScreen() {
                       key={w.id}
                       style={[
                         styles.walletChip,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
                         selectedWalletId === w.id && {
                           backgroundColor: goalColor,
                           borderColor: goalColor,
@@ -447,6 +501,7 @@ export default function GoalDetailScreen() {
                       <Text
                         style={[
                           styles.walletChipText,
+                          { color: colors.textMain },
                           selectedWalletId === w.id && { color: "#FFF" },
                         ]}
                       >
@@ -458,10 +513,20 @@ export default function GoalDetailScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nominal (Rp)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nominal (Rp)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="0"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   value={actionAmount}
                   onChangeText={setActionAmount}
@@ -501,35 +566,58 @@ export default function GoalDetailScreen() {
             onPress={() => setEditModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.card }]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Target Impian</Text>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                  Edit Target Impian
+                </Text>
                 <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={baseColors.textMain}
-                  />
+                  <Ionicons name="close" size={24} color={colors.textMain} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nama Target</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nama Target
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="Contoh: Beli Laptop"
+                  placeholderTextColor={colors.textMuted}
                   value={editName}
                   onChangeText={setEditName}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Target Nominal (Rp)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Target Nominal (Rp)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="0"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   value={editTarget}
                   onChangeText={setEditTarget}
@@ -551,7 +639,7 @@ export default function GoalDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: baseColors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -560,7 +648,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   iconBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: baseColors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { paddingHorizontal: 20 },
   avatarWrapper: { alignItems: "center", marginVertical: 20 },
   avatarCircle: {
@@ -571,14 +659,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  goalName: { fontSize: 20, fontWeight: "bold", color: baseColors.textMain },
+  goalName: { fontSize: 20, fontWeight: "bold" },
   amountInfoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  infoLabel: { fontSize: 13, color: baseColors.textMuted, marginBottom: 4 },
-  targetVal: { fontSize: 16, fontWeight: "bold", color: baseColors.textMain },
+  infoLabel: { fontSize: 13, marginBottom: 4 },
+  targetVal: { fontSize: 16, fontWeight: "bold" },
   collectedVal: { fontSize: 16, fontWeight: "bold" },
   progressSection: { marginBottom: 24 },
   percentageText: {
@@ -589,16 +677,13 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 10,
-    backgroundColor: "#E0E0E0",
     borderRadius: 5,
     overflow: "hidden",
   },
   progressBarFill: { height: "100%", borderRadius: 5 },
   metaBox: {
-    backgroundColor: baseColors.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: baseColors.border,
     paddingHorizontal: 16,
     marginBottom: 24,
   },
@@ -607,33 +692,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: baseColors.border,
   },
-  metaLabel: { fontSize: 14, color: baseColors.textMuted },
-  metaValue: { fontSize: 14, fontWeight: "bold", color: baseColors.textMain },
+  metaLabel: { fontSize: 14 },
+  metaValue: { fontSize: 14, fontWeight: "bold" },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: baseColors.textMain,
     marginBottom: 12,
   },
   noHistoryText: {
     fontSize: 13,
-    color: baseColors.textMuted,
     fontStyle: "italic",
   },
   historyItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: baseColors.card,
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: baseColors.border,
     marginBottom: 8,
   },
-  historyDate: { fontSize: 14, color: baseColors.textMain },
+  historyDate: { fontSize: 14 },
   historyAmount: {
     fontSize: 14,
     fontWeight: "bold",
@@ -644,10 +724,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    backgroundColor: baseColors.background,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: baseColors.border,
   },
   depositButton: {
     flex: 1,
@@ -659,7 +737,7 @@ const styles = StyleSheet.create({
   },
   depositButtonText: { color: "#FFF", fontSize: 16, fontWeight: "bold" },
   emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { fontSize: 16, color: baseColors.textMuted, marginBottom: 16 },
+  emptyText: { fontSize: 16, marginBottom: 16 },
   backBtnSimple: {
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -672,7 +750,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -683,39 +760,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
     paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: baseColors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   inputGroup: { marginBottom: 16 },
   label: {
     fontSize: 13,
-    color: baseColors.textMuted,
     marginBottom: 8,
     fontWeight: "600",
   },
   input: {
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 15,
-    color: baseColors.textMain,
   },
   walletChip: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: baseColors.border,
     marginRight: 8,
-    backgroundColor: "#FAFAFA",
   },
   walletChipText: {
     fontSize: 13,
-    color: baseColors.textMain,
     fontWeight: "600",
   },
   saveBtn: {

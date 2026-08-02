@@ -13,17 +13,8 @@ import {
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { useTransactions } from "../../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-  danger: "#E53935",
-};
 
 const monthsNames = [
   "Januari",
@@ -44,6 +35,8 @@ export default function StatistikScreen() {
   const router = useRouter();
   const { transactions, categories, monthlyBudget, setMonthlyBudget } =
     useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number | "all">(
@@ -158,14 +151,23 @@ export default function StatistikScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Statistik & Anggaran</Text>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Statistik & Anggaran
+        </Text>
         <TouchableOpacity
-          style={styles.monthSelector}
+          style={[
+            styles.monthSelector,
+            { backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9" },
+          ]}
           onPress={() => setIsModalVisible(true)}
         >
-          <Text style={styles.monthText}>{displayText}</Text>
+          <Text style={[styles.monthText, { color: colors.primary }]}>
+            {displayText}
+          </Text>
           <Ionicons name="chevron-down" size={16} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -175,14 +177,21 @@ export default function StatistikScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Pemilih Bulan Panah */}
-        <View style={styles.arrowMonthContainer}>
+        <View
+          style={[
+            styles.arrowMonthContainer,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => changeMonth("prev")}
             style={styles.arrowBtn}
           >
             <Ionicons name="chevron-back" size={20} color={colors.textMain} />
           </TouchableOpacity>
-          <Text style={styles.arrowMonthText}>{displayText}</Text>
+          <Text style={[styles.arrowMonthText, { color: colors.textMain }]}>
+            {displayText}
+          </Text>
           <TouchableOpacity
             onPress={() => changeMonth("next")}
             style={styles.arrowBtn}
@@ -196,7 +205,7 @@ export default function StatistikScreen() {
         </View>
 
         {/* Kartu Target Anggaran */}
-        <View style={styles.budgetCard}>
+        <View style={[styles.budgetCard, { backgroundColor: colors.primary }]}>
           <View style={styles.budgetHeader}>
             <View>
               <Text style={styles.budgetLabel}>
@@ -250,9 +259,16 @@ export default function StatistikScreen() {
         {/* Grafik Donat Premium & Daftar Kategori */}
         {categoryStats.length > 0 && (
           <View style={styles.chartContainer}>
-            <Text style={styles.sectionTitle}>Proporsi Pengeluaran</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textMain }]}>
+              Proporsi Pengeluaran
+            </Text>
 
-            <View style={styles.chartAndLegendWrapper}>
+            <View
+              style={[
+                styles.chartAndLegendWrapper,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
               <View style={styles.chartWrapper}>
                 <PieChart
                   donut
@@ -266,7 +282,13 @@ export default function StatistikScreen() {
                         <Text style={styles.centerLabelTitle}>
                           Total Keluar
                         </Text>
-                        <Text style={styles.centerLabelValue} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.centerLabelValue,
+                            { color: colors.textMain },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {formatRp(totalExpense)}
                         </Text>
                       </View>
@@ -275,11 +297,18 @@ export default function StatistikScreen() {
                 />
               </View>
 
-              <View style={styles.legendWrapper}>
+              <View
+                style={[
+                  styles.legendWrapper,
+                  { borderTopColor: colors.border },
+                ]}
+              >
                 {categoryStats.map((item) => {
                   const catColor = categoryIcons[item.name]?.color || "#BDBDBD";
                   const catIcon = categoryIcons[item.name]?.icon || "pricetag";
-                  const catBg = categoryIcons[item.name]?.bg || "#EEEEEE";
+                  const catBg =
+                    categoryIcons[item.name]?.bg ||
+                    (isDarkMode ? "#2C2C2C" : "#EEEEEE");
 
                   return (
                     <View key={item.name} style={styles.legendItem}>
@@ -297,19 +326,41 @@ export default function StatistikScreen() {
                           />
                         </View>
                         <Text
-                          style={styles.legendCategoryName}
+                          style={[
+                            styles.legendCategoryName,
+                            { color: colors.textMain },
+                          ]}
                           numberOfLines={1}
                         >
                           {item.name}
                         </Text>
                       </View>
                       <View style={styles.legendRight}>
-                        <View style={styles.badgePercentage}>
-                          <Text style={styles.legendPercentage}>
+                        <View
+                          style={[
+                            styles.badgePercentage,
+                            {
+                              backgroundColor: isDarkMode
+                                ? "#2C2C2C"
+                                : "#F5F5F5",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.legendPercentage,
+                              { color: colors.textMuted },
+                            ]}
+                          >
                             {item.percentage}%
                           </Text>
                         </View>
-                        <Text style={styles.legendCategoryAmount}>
+                        <Text
+                          style={[
+                            styles.legendCategoryAmount,
+                            { color: colors.textMain },
+                          ]}
+                        >
                           {formatRp(item.amount)}
                         </Text>
                       </View>
@@ -328,7 +379,7 @@ export default function StatistikScreen() {
               size={48}
               color={colors.border}
             />
-            <Text style={styles.emptyStateText}>
+            <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>
               Tidak ada pengeluaran pada periode ini
             </Text>
           </View>
@@ -350,11 +401,15 @@ export default function StatistikScreen() {
           onPress={() => setIsModalVisible(false)}
         >
           <View
-            style={styles.modalContent}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
             onStartShouldSetResponder={() => true}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Pilih Periode</Text>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                Pilih Periode
+              </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMain} />
               </TouchableOpacity>
@@ -366,7 +421,10 @@ export default function StatistikScreen() {
                 <TouchableOpacity
                   style={[
                     styles.modalItem,
-                    selectedMonth === item.value && styles.modalItemActive,
+                    { borderBottomColor: colors.border },
+                    selectedMonth === item.value && {
+                      backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                    },
                   ]}
                   onPress={() => {
                     setSelectedMonth(item.value as any);
@@ -376,6 +434,7 @@ export default function StatistikScreen() {
                   <Text
                     style={[
                       styles.modalItemText,
+                      { color: colors.textMain },
                       selectedMonth === item.value &&
                         styles.modalItemTextActive,
                     ]}
@@ -409,27 +468,41 @@ export default function StatistikScreen() {
           onPress={() => setBudgetModalVisible(false)}
         >
           <View
-            style={styles.modalContent}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
             onStartShouldSetResponder={() => true}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Atur Target Anggaran</Text>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                Atur Target Anggaran
+              </Text>
               <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMain} />
               </TouchableOpacity>
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Batas Maksimal Pengeluaran (Rp)</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Batas Maksimal Pengeluaran (Rp)
+              </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    color: colors.textMain,
+                  },
+                ]}
                 value={inputBudget}
                 onChangeText={setInputBudget}
                 keyboardType="numeric"
                 placeholder="Contoh: 1500000"
+                placeholderTextColor={colors.textMuted}
               />
             </View>
             <TouchableOpacity
-              style={styles.saveButton}
+              style={[styles.saveButton, { backgroundColor: colors.primary }]}
               onPress={handleSaveBudget}
             >
               <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
@@ -442,7 +515,7 @@ export default function StatistikScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -450,17 +523,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
   monthSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E8F5E9",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   monthText: {
-    color: colors.primary,
     fontWeight: "600",
     marginRight: 4,
     fontSize: 13,
@@ -469,18 +540,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: colors.card,
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: 16,
   },
   arrowBtn: { padding: 4 },
-  arrowMonthText: { fontSize: 15, fontWeight: "bold", color: colors.textMain },
+  arrowMonthText: { fontSize: 15, fontWeight: "bold" },
   container: { padding: 20 },
   budgetCard: {
-    backgroundColor: colors.primary,
     padding: 20,
     borderRadius: 16,
     marginBottom: 20,
@@ -525,14 +593,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: colors.textMain,
     marginBottom: 12,
   },
   chartAndLegendWrapper: {
-    backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: 20,
     alignItems: "center",
     shadowColor: "#000",
@@ -553,21 +618,18 @@ const styles = StyleSheet.create({
   },
   centerLabelTitle: {
     fontSize: 11,
-    color: colors.textMuted,
     fontWeight: "600",
     textTransform: "uppercase",
   },
   centerLabelValue: {
     fontSize: 12,
     fontWeight: "bold",
-    color: colors.textMain,
     textAlign: "center",
   },
   legendWrapper: {
     width: "100%",
     marginTop: 20,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     paddingTop: 15,
   },
   legendItem: {
@@ -597,7 +659,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   badgePercentage: {
-    backgroundColor: "#F5F5F5",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -606,18 +667,15 @@ const styles = StyleSheet.create({
   },
   legendPercentage: {
     fontSize: 12,
-    color: colors.textMuted,
     fontWeight: "600",
   },
   legendCategoryName: {
     fontSize: 14,
-    color: colors.textMain,
     fontWeight: "600",
     flex: 1,
   },
   legendCategoryAmount: {
     fontSize: 13,
-    color: colors.textMain,
     fontWeight: "bold",
     textAlign: "right",
     minWidth: 85,
@@ -628,14 +686,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 40,
   },
-  emptyStateText: { marginTop: 10, fontSize: 15, color: colors.textMuted },
+  emptyStateText: { marginTop: 10, fontSize: 15 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -647,10 +704,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
     paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   modalItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -658,31 +714,24 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
     borderRadius: 8,
   },
-  modalItemActive: { backgroundColor: "#E8F5E9" },
-  modalItemText: { fontSize: 16, color: colors.textMain },
-  modalItemTextActive: { color: colors.primary, fontWeight: "bold" },
+  modalItemText: { fontSize: 16 },
+  modalItemTextActive: { fontWeight: "bold" },
   inputGroup: { marginBottom: 16 },
   label: {
     fontSize: 14,
-    color: colors.textMuted,
     marginBottom: 6,
     fontWeight: "500",
   },
   input: {
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 15,
-    color: colors.textMain,
   },
   saveButton: {
-    backgroundColor: colors.primary,
     borderRadius: 12,
     height: 52,
     alignItems: "center",

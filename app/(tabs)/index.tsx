@@ -9,26 +9,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { useTransactions } from "../../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  primary: "#43A047",
-  textMain: "#212121",
-  textMuted: "#757575",
-  incomeBg: "#E8F5E9",
-  expenseBg: "#FFEBEE",
-  incomeText: "#2E7D32",
-  expenseText: "#C62828",
-  border: "#EEEEEE",
-  progressBg: "#E0E0E0",
-  transfer: "#1E88E5",
-};
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { transactions, wallets, categories } = useTransactions();
+  const { colors, theme } = useTheme(); // Mengambil tema aktif dan warna dinamis
+  const isDarkMode = theme === "dark";
 
   const totalIncome = transactions
     .filter((t) => t.type === "income" && !t.isDebtRelated)
@@ -53,21 +41,25 @@ export default function DashboardScreen() {
     const c = categories.find((item) => item.name === catName);
     return c
       ? { icon: c.icon, color: c.color, bg: c.bg }
-      : { icon: "pricetag-outline", color: "#757575", bg: "#EEEEEE" };
+      : {
+          icon: "pricetag-outline",
+          color: colors.textMuted,
+          bg: colors.border,
+        };
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Beranda</Text>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Beranda
+        </Text>
 
-        {/* Tombol Pengaturan Keamanan di Kanan Atas */}
-        <TouchableOpacity onPress={() => router.push("/keamanan" as any)}>
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={24}
-            color={colors.primary}
-          />
+        {/* Tombol Pengaturan (Settings) di Kanan Atas */}
+        <TouchableOpacity onPress={() => router.push("/settings" as any)}>
+          <Ionicons name="settings-outline" size={24} color={colors.textMain} />
         </TouchableOpacity>
       </View>
 
@@ -77,14 +69,21 @@ export default function DashboardScreen() {
       >
         {/* Kartu Saldo Gabungan */}
         <TouchableOpacity
-          style={styles.balanceSection}
+          style={[
+            styles.balanceSection,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
           activeOpacity={0.8}
           onPress={() => router.push("/wallets")}
         >
           <View style={styles.balanceHeaderRow}>
-            <Text style={styles.balanceLabel}>Total Saldo Dompet</Text>
+            <Text style={[styles.balanceLabel, { color: colors.textMuted }]}>
+              Total Saldo Dompet
+            </Text>
             <View style={styles.walletLinkRow}>
-              <Text style={styles.walletLinkText}>Kelola</Text>
+              <Text style={[styles.walletLinkText, { color: colors.primary }]}>
+                Kelola
+              </Text>
               <Ionicons
                 name="chevron-forward"
                 size={16}
@@ -93,7 +92,7 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceAmount}>
+            <Text style={[styles.balanceAmount, { color: colors.textMain }]}>
               {formatRp(totalAllWallets)}
             </Text>
             <Ionicons name="wallet-outline" size={26} color={colors.primary} />
@@ -102,17 +101,27 @@ export default function DashboardScreen() {
 
         <View style={styles.summaryRow}>
           <View
-            style={[styles.summaryCard, { backgroundColor: colors.incomeBg }]}
+            style={[
+              styles.summaryCard,
+              { backgroundColor: isDarkMode ? colors.incomeBg : "#E8F5E9" },
+            ]}
           >
-            <Text style={styles.summaryLabel}>Pemasukan</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
+              Pemasukan
+            </Text>
             <Text style={[styles.summaryValue, { color: colors.incomeText }]}>
               {formatRp(totalIncome)}
             </Text>
           </View>
           <View
-            style={[styles.summaryCard, { backgroundColor: colors.expenseBg }]}
+            style={[
+              styles.summaryCard,
+              { backgroundColor: isDarkMode ? colors.expenseBg : "#FFEBEE" },
+            ]}
           >
-            <Text style={styles.summaryLabel}>Pengeluaran</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
+              Pengeluaran
+            </Text>
             <Text style={[styles.summaryValue, { color: colors.expenseText }]}>
               {formatRp(totalExpense)}
             </Text>
@@ -121,17 +130,29 @@ export default function DashboardScreen() {
 
         {/* Kartu Menu Target Impian */}
         <TouchableOpacity
-          style={styles.goalBannerCard}
+          style={[
+            styles.goalBannerCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
           activeOpacity={0.8}
           onPress={() => router.push("/goals" as any)}
         >
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <View style={styles.goalIconBg}>
+            <View
+              style={[
+                styles.goalIconBg,
+                { backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9" },
+              ]}
+            >
               <Ionicons name="trophy" size={22} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.goalBannerTitle}>Target Impian (Goals)</Text>
-              <Text style={styles.goalBannerSub}>
+              <Text
+                style={[styles.goalBannerTitle, { color: colors.textMain }]}
+              >
+                Target Impian (Goals)
+              </Text>
+              <Text style={[styles.goalBannerSub, { color: colors.textMuted }]}>
                 Kelola tabungan & capai targetmu
               </Text>
             </View>
@@ -141,17 +162,33 @@ export default function DashboardScreen() {
 
         {/* KARTU MENU UTANG & PIUTANG */}
         <TouchableOpacity
-          style={styles.goalBannerCard}
+          style={[
+            styles.goalBannerCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
           activeOpacity={0.8}
           onPress={() => router.push("/debts" as any)}
         >
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <View style={[styles.goalIconBg, { backgroundColor: "#E3F2FD" }]}>
-              <Ionicons name="swap-horizontal" size={22} color="#1E88E5" />
+            <View
+              style={[
+                styles.goalIconBg,
+                { backgroundColor: isDarkMode ? "#1C3144" : "#E3F2FD" },
+              ]}
+            >
+              <Ionicons
+                name="swap-horizontal"
+                size={22}
+                color={colors.transfer}
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.goalBannerTitle}>Utang & Piutang</Text>
-              <Text style={styles.goalBannerSub}>
+              <Text
+                style={[styles.goalBannerTitle, { color: colors.textMain }]}
+              >
+                Utang & Piutang
+              </Text>
+              <Text style={[styles.goalBannerSub, { color: colors.textMuted }]}>
                 Catat uang dipinjam & meminjam
               </Text>
             </View>
@@ -159,37 +196,23 @@ export default function DashboardScreen() {
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </TouchableOpacity>
 
-        {/* KARTU MENU EKSPOR LAPORAN KEUANGAN */}
-        <TouchableOpacity
-          style={styles.goalBannerCard}
-          activeOpacity={0.8}
-          onPress={() => router.push("/export" as any)}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <View style={[styles.goalIconBg, { backgroundColor: "#FFF3E0" }]}>
-              <Ionicons name="download-outline" size={22} color="#F57C00" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.goalBannerTitle}>Ekspor Laporan</Text>
-              <Text style={styles.goalBannerSub}>
-                Unduh rekap transaksi format CSV
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </TouchableOpacity>
-
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Riwayat Transaksi</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMain }]}>
+            Riwayat Transaksi
+          </Text>
           <TouchableOpacity onPress={() => router.push("/transaksi" as any)}>
-            <Text style={styles.seeAllText}>Lihat Semua</Text>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>
+              Lihat Semua
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Daftar Riwayat Transaksi Dinamis */}
         <View style={styles.transactionList}>
           {transactions.length === 0 ? (
-            <Text style={styles.emptyText}>Belum ada transaksi tercatat</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              Belum ada transaksi tercatat
+            </Text>
           ) : (
             transactions.slice(0, 5).map((t) => {
               const isTransfer = t.type === "transfer";
@@ -200,11 +223,26 @@ export default function DashboardScreen() {
                 : "";
 
               return (
-                <View key={t.id} style={styles.transactionItem}>
+                <View
+                  key={t.id}
+                  style={[
+                    styles.transactionItem,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
                   <View
                     style={[
                       styles.iconBg,
-                      { backgroundColor: isTransfer ? "#E3F2FD" : catInfo.bg },
+                      {
+                        backgroundColor: isTransfer
+                          ? isDarkMode
+                            ? "#1C3144"
+                            : "#E3F2FD"
+                          : catInfo.bg,
+                      },
                     ]}
                   >
                     <Ionicons
@@ -216,12 +254,22 @@ export default function DashboardScreen() {
                     />
                   </View>
                   <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionTitle}>
+                    <Text
+                      style={[
+                        styles.transactionTitle,
+                        { color: colors.textMain },
+                      ]}
+                    >
                       {isTransfer
                         ? `Transfer (${fromWalletName} ➔ ${toWalletName})`
                         : t.category}
                     </Text>
-                    <Text style={styles.transactionSubtitle}>
+                    <Text
+                      style={[
+                        styles.transactionSubtitle,
+                        { color: colors.textMuted },
+                      ]}
+                    >
                       {fromWalletName} {t.note ? `• ${t.note}` : ""}
                     </Text>
                   </View>
@@ -258,23 +306,20 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: colors.background,
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
   container: { paddingHorizontal: 20, paddingTop: 10 },
   balanceSection: {
-    backgroundColor: colors.card,
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: 24,
   },
   balanceHeaderRow: {
@@ -283,11 +328,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  balanceLabel: { fontSize: 13, color: colors.textMuted, fontWeight: "500" },
+  balanceLabel: { fontSize: 13, fontWeight: "500" },
   walletLinkRow: { flexDirection: "row", alignItems: "center" },
   walletLinkText: {
     fontSize: 13,
-    color: colors.primary,
     fontWeight: "600",
     marginRight: 2,
   },
@@ -296,31 +340,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  balanceAmount: { fontSize: 28, fontWeight: "bold", color: colors.textMain },
+  balanceAmount: { fontSize: 28, fontWeight: "bold" },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 20,
   },
   summaryCard: { width: "48%", padding: 16, borderRadius: 12 },
-  summaryLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 8 },
+  summaryLabel: { fontSize: 12, marginBottom: 8 },
   summaryValue: { fontSize: 16, fontWeight: "bold" },
   goalBannerCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: 16,
   },
   goalIconBg: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -328,10 +369,9 @@ const styles = StyleSheet.create({
   goalBannerTitle: {
     fontSize: 15,
     fontWeight: "bold",
-    color: colors.textMain,
     marginBottom: 2,
   },
-  goalBannerSub: { fontSize: 12, color: colors.textMuted },
+  goalBannerSub: { fontSize: 12 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -339,18 +379,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 8,
   },
-  sectionTitle: { fontSize: 16, fontWeight: "bold", color: colors.textMain },
-  seeAllText: { fontSize: 14, color: colors.primary, fontWeight: "500" },
+  sectionTitle: { fontSize: 16, fontWeight: "bold" },
+  seeAllText: { fontSize: 14, fontWeight: "500" },
   transactionList: { marginBottom: 20 },
   transactionItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
     padding: 12,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   iconBg: {
     width: 40,
@@ -364,10 +402,9 @@ const styles = StyleSheet.create({
   transactionTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textMain,
     marginBottom: 2,
   },
-  transactionSubtitle: { fontSize: 12, color: colors.textMuted },
+  transactionSubtitle: { fontSize: 12 },
   transactionAmount: { fontSize: 14, fontWeight: "bold" },
-  emptyText: { textAlign: "center", color: colors.textMuted, marginTop: 10 },
+  emptyText: { textAlign: "center", marginTop: 10 },
 });

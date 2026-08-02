@@ -2,24 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-
-const colors = {
-  background: "#FFFFFF",
-  primary: "#43A047",
-  textMuted: "#9E9E9E",
-  border: "#F5F5F5",
-};
+import { useTheme } from "../../context/ThemeContext";
 
 export default function TabLayout() {
   const router = useRouter();
+  const { colors } = useTheme();
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: colors.background,
+            backgroundColor: colors.card,
             borderTopWidth: 1,
             borderTopColor: colors.border,
             height: 75,
@@ -90,7 +85,7 @@ export default function TabLayout() {
 
       {/* Tombol Plus Global yang muncul di semua tab */}
       <TouchableOpacity
-        style={styles.globalFab}
+        style={[styles.globalFab, { backgroundColor: colors.primary }]}
         onPress={() => router.push("/add-transaction")}
       >
         <Ionicons name="add" size={32} color="#FFFFFF" />
@@ -107,7 +102,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,
