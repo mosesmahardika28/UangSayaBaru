@@ -2,15 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Goal, useTransactions } from "../context/TransactionContext";
@@ -36,12 +38,10 @@ export default function GoalsScreen() {
     withdrawFromGoal,
   } = useTransactions();
 
-  // Modal State Tambah Target
   const [isAddModalVisible, setAddModalVisible] = useState(false);
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
 
-  // Modal State Nabung / Tarik
   const [isActionModalVisible, setActionModalVisible] = useState(false);
   const [actionType, setActionType] = useState<"deposit" | "withdraw">(
     "deposit",
@@ -56,13 +56,13 @@ export default function GoalsScreen() {
 
   const handleCreateGoal = () => {
     if (!goalName.trim() || !goalTarget) {
-      alert("Nama dan target nominal tidak boleh kosong!");
+      Alert.alert("Perhatian", "Nama dan target nominal tidak boleh kosong!");
       return;
     }
 
     const parsedTarget = parseInt(goalTarget.replace(/[^0-9]/g, "")) || 0;
     if (parsedTarget <= 0) {
-      alert("Target nominal harus lebih dari 0!");
+      Alert.alert("Perhatian", "Target nominal harus lebih dari 0!");
       return;
     }
 
@@ -86,26 +86,41 @@ export default function GoalsScreen() {
     setActionModalVisible(true);
   };
 
-  const handleExecuteAction = () => {
+  const handleExecuteAction = async () => {
     if (!selectedGoal || !actionAmount) return;
 
     const parsedAmount = parseInt(actionAmount.replace(/[^0-9]/g, "")) || 0;
     if (parsedAmount <= 0) {
-      alert("Nominal harus lebih dari 0!");
+      Alert.alert("Perhatian", "Nominal harus lebih dari 0!");
       return;
     }
 
-    if (actionType === "deposit") {
-      depositToGoal(selectedGoal.id, selectedWalletId, parsedAmount);
-      alert(
-        `Berhasil menabung ${formatRp(parsedAmount)} ke ${selectedGoal.name}!`,
-      );
-    } else {
-      withdrawFromGoal(selectedGoal.id, selectedWalletId, parsedAmount);
-      alert(`Berhasil mencairkan ${formatRp(parsedAmount)} ke dompet!`);
+    if (!selectedWalletId) {
+      Alert.alert("Perhatian", "Pilih dompet terlebih dahulu!");
+      return;
     }
 
-    setActionModalVisible(false);
+    try {
+      if (actionType === "deposit") {
+        await depositToGoal(selectedGoal.id, selectedWalletId, parsedAmount);
+        Alert.alert(
+          "Sukses",
+          `Berhasil menabung ${formatRp(parsedAmount)} ke ${selectedGoal.name}!`,
+        );
+      } else {
+        await withdrawFromGoal(selectedGoal.id, selectedWalletId, parsedAmount);
+        Alert.alert(
+          "Sukses",
+          `Berhasil mencairkan ${formatRp(parsedAmount)} ke dompet!`,
+        );
+      }
+      setActionModalVisible(false);
+    } catch (error: any) {
+      Alert.alert(
+        "Gagal",
+        error.message || "Terjadi kesalahan saat memproses transaksi.",
+      );
+    }
   };
 
   const handleDeleteGoal = (goal: Goal) => {
@@ -211,7 +226,6 @@ export default function GoalsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Progress Bar */}
                 <View style={styles.progressBg}>
                   <View
                     style={[
@@ -230,7 +244,6 @@ export default function GoalsScreen() {
                   </Text>
                 </View>
 
-                {/* Tombol Aksi Nabung & Cairkan */}
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={[
@@ -245,7 +258,6 @@ export default function GoalsScreen() {
                     <Ionicons name="add" size={16} color="#FFF" />
                     <Text style={styles.btnActionText}>Nabung</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
                     style={[styles.btnAction, { backgroundColor: "#ECEFF1" }]}
                     onPress={(e) => {
@@ -271,131 +283,138 @@ export default function GoalsScreen() {
         )}
       </ScrollView>
 
-      {/* Modal Buat Target Baru */}
+      {/* Modal Buat Target */}
       <Modal visible={isAddModalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setAddModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
         >
-          <View
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setAddModalVisible(false)}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Buat Target Impian</Text>
-              <TouchableOpacity onPress={() => setAddModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMain} />
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Buat Target Impian</Text>
+                <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textMain} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nama Target</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: Beli Laptop Baru"
+                  value={goalName}
+                  onChangeText={setGoalName}
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Target Nominal (Rp)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: 10000000"
+                  keyboardType="numeric"
+                  value={goalTarget}
+                  onChangeText={setGoalTarget}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleCreateGoal}
+              >
+                <Text style={styles.saveBtnText}>Simpan Target</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nama Target</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: Beli Laptop Baru"
-                value={goalName}
-                onChangeText={setGoalName}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Target Nominal (Rp)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: 10000000"
-                keyboardType="numeric"
-                value={goalTarget}
-                onChangeText={setGoalTarget}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.saveBtn} onPress={handleCreateGoal}>
-              <Text style={styles.saveBtnText}>Simpan Target</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Nabung / Cairkan */}
       <Modal visible={isActionModalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setActionModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
         >
-          <View
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setActionModalVisible(false)}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {actionType === "deposit"
-                  ? `Nabung ke ${selectedGoal?.name}`
-                  : `Cairkan ${selectedGoal?.name}`}
-              </Text>
-              <TouchableOpacity onPress={() => setActionModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMain} />
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {actionType === "deposit"
+                    ? `Nabung ke ${selectedGoal?.name}`
+                    : `Cairkan ${selectedGoal?.name}`}
+                </Text>
+                <TouchableOpacity onPress={() => setActionModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textMain} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Pilih Dompet</Text>
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={wallets}
+                  keyExtractor={(w) => w.id}
+                  renderItem={({ item: w }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.walletChip,
+                        selectedWalletId === w.id && styles.walletChipActive,
+                      ]}
+                      onPress={() => setSelectedWalletId(w.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.walletChipText,
+                          selectedWalletId === w.id && { color: "#FFF" },
+                        ]}
+                      >
+                        {w.name}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nominal (Rp)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={actionAmount}
+                  onChangeText={setActionAmount}
+                />
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  {
+                    backgroundColor:
+                      actionType === "deposit" ? colors.primary : "#455A64",
+                  },
+                ]}
+                onPress={handleExecuteAction}
+              >
+                <Text style={styles.saveBtnText}>
+                  {actionType === "deposit"
+                    ? "Proses Menabung"
+                    : "Proses Pencairan"}
+                </Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Pilih Dompet</Text>
-              <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={wallets}
-                keyExtractor={(w) => w.id}
-                renderItem={({ item: w }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.walletChip,
-                      selectedWalletId === w.id && styles.walletChipActive,
-                    ]}
-                    onPress={() => setSelectedWalletId(w.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.walletChipText,
-                        selectedWalletId === w.id && { color: "#FFF" },
-                      ]}
-                    >
-                      {w.name}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nominal (Rp)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="numeric"
-                value={actionAmount}
-                onChangeText={setActionAmount}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.saveBtn,
-                {
-                  backgroundColor:
-                    actionType === "deposit" ? colors.primary : "#455A64",
-                },
-              ]}
-              onPress={handleExecuteAction}
-            >
-              <Text style={styles.saveBtnText}>
-                {actionType === "deposit"
-                  ? "Proses Menabung"
-                  : "Proses Pencairan"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

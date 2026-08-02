@@ -2,14 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Debt, useTransactions } from "../context/TransactionContext";
@@ -53,20 +55,20 @@ export default function DebtsScreen() {
 
   const handleSave = () => {
     if (!name.trim() || !amount) {
-      alert("Nama dan nominal tidak boleh kosong!");
+      Alert.alert("Perhatian", "Nama dan nominal tidak boleh kosong!");
       return;
     }
 
     const parsedAmount = parseInt(amount.replace(/[^0-9]/g, "")) || 0;
     if (parsedAmount <= 0) {
-      alert("Nominal harus lebih dari 0!");
+      Alert.alert("Perhatian", "Nominal harus lebih dari 0!");
       return;
     }
 
     const targetWalletId = selectedWalletId || wallets[0]?.id || "";
 
     if (!targetWalletId) {
-      alert("Pilih dompet terlebih dahulu!");
+      Alert.alert("Perhatian", "Pilih dompet terlebih dahulu!");
       return;
     }
 
@@ -90,7 +92,6 @@ export default function DebtsScreen() {
 
   const handlePayClick = (item: Debt) => {
     if (item.isPaid) {
-      // Jika sudah lunas, berikan konfirmasi agar tidak tidak sengaja tertekan
       Alert.alert(
         "Batalkan Status Lunas",
         `Yakin ingin mengubah "${item.name}" kembali menjadi Belum Lunas? Saldo dompet akan disesuaikan kembali.`,
@@ -104,7 +105,6 @@ export default function DebtsScreen() {
         ],
       );
     } else {
-      // Jika belum lunas, buka modal pemilihan dompet pelunasan yang aman dan bisa dibatalkan
       setSelectedDebtForPay(item);
       setPayWalletId(wallets[0]?.id || "");
       setPayModalVisible(true);
@@ -276,178 +276,188 @@ export default function DebtsScreen() {
 
       {/* Modal Tambah Catatan */}
       <Modal visible={isModalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
         >
-          <View
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Tambah {activeTab === "lend" ? "Piutang" : "Utang"}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMain} />
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  Tambah {activeTab === "lend" ? "Piutang" : "Utang"}
+                </Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textMain} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nama Orang</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: Budi"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nominal (Rp)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={amount}
+                  onChangeText={setAmount}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  {activeTab === "lend"
+                    ? "Sumber Dompet (Uang Keluar)"
+                    : "Dompet Tujuan (Uang Masuk)"}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ flexDirection: "row" }}
+                >
+                  {wallets.map((w) => (
+                    <TouchableOpacity
+                      key={w.id}
+                      style={[
+                        styles.walletChip,
+                        selectedWalletId === w.id && styles.walletChipActive,
+                      ]}
+                      onPress={() => setSelectedWalletId(w.id)}
+                    >
+                      <Ionicons
+                        name={w.icon as any}
+                        size={16}
+                        color={
+                          selectedWalletId === w.id ? "#FFF" : colors.primary
+                        }
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        style={[
+                          styles.walletChipText,
+                          selectedWalletId === w.id && { color: "#FFF" },
+                        ]}
+                      >
+                        {w.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Catatan (Opsional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: Cicilan bulanan"
+                  value={note}
+                  onChangeText={setNote}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                <Text style={styles.saveBtnText}>Simpan Catatan</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nama Orang</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: Budi"
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nominal (Rp)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="numeric"
-                value={amount}
-                onChangeText={setAmount}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                {activeTab === "lend"
-                  ? "Sumber Dompet (Uang Keluar)"
-                  : "Dompet Tujuan (Uang Masuk)"}
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ flexDirection: "row" }}
-              >
-                {wallets.map((w) => (
-                  <TouchableOpacity
-                    key={w.id}
-                    style={[
-                      styles.walletChip,
-                      selectedWalletId === w.id && styles.walletChipActive,
-                    ]}
-                    onPress={() => setSelectedWalletId(w.id)}
-                  >
-                    <Ionicons
-                      name={w.icon as any}
-                      size={16}
-                      color={
-                        selectedWalletId === w.id ? "#FFF" : colors.primary
-                      }
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      style={[
-                        styles.walletChipText,
-                        selectedWalletId === w.id && { color: "#FFF" },
-                      ]}
-                    >
-                      {w.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Catatan (Opsional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: Cicilan bulanan"
-                value={note}
-                onChangeText={setNote}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={styles.saveBtnText}>Simpan Catatan</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Konfirmasi & Pilih Dompet Pelunasan Aman */}
       <Modal visible={isPayModalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setPayModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
         >
-          <View
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setPayModalVisible(false)}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Konfirmasi Pelunasan</Text>
-              <TouchableOpacity onPress={() => setPayModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMain} />
-              </TouchableOpacity>
-            </View>
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Konfirmasi Pelunasan</Text>
+                <TouchableOpacity onPress={() => setPayModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textMain} />
+                </TouchableOpacity>
+              </View>
 
-            <Text style={styles.payModalSubtext}>
-              {selectedDebtForPay?.type === "lend"
-                ? `Pilih dompet tempat dana pelunasan dari ${selectedDebtForPay?.name} diterima:`
-                : `Pilih dompet sumber dana untuk melunasi utang ke ${selectedDebtForPay?.name}:`}
-            </Text>
+              <Text style={styles.payModalSubtext}>
+                {selectedDebtForPay?.type === "lend"
+                  ? `Pilih dompet tempat dana pelunasan dari ${selectedDebtForPay?.name} diterima:`
+                  : `Pilih dompet sumber dana untuk melunasi utang ke ${selectedDebtForPay?.name}:`}
+              </Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Pilih Dompet</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ flexDirection: "row" }}
-              >
-                {wallets.map((w) => (
-                  <TouchableOpacity
-                    key={w.id}
-                    style={[
-                      styles.walletChip,
-                      payWalletId === w.id && styles.walletChipActive,
-                    ]}
-                    onPress={() => setPayWalletId(w.id)}
-                  >
-                    <Ionicons
-                      name={w.icon as any}
-                      size={16}
-                      color={payWalletId === w.id ? "#FFF" : colors.primary}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Pilih Dompet</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ flexDirection: "row" }}
+                >
+                  {wallets.map((w) => (
+                    <TouchableOpacity
+                      key={w.id}
                       style={[
-                        styles.walletChipText,
-                        payWalletId === w.id && { color: "#FFF" },
+                        styles.walletChip,
+                        payWalletId === w.id && styles.walletChipActive,
                       ]}
+                      onPress={() => setPayWalletId(w.id)}
                     >
-                      {w.name} ({formatRp(w.balance || 0)})
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                      <Ionicons
+                        name={w.icon as any}
+                        size={16}
+                        color={payWalletId === w.id ? "#FFF" : colors.primary}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        style={[
+                          styles.walletChipText,
+                          payWalletId === w.id && { color: "#FFF" },
+                        ]}
+                      >
+                        {w.name} ({formatRp(w.balance || 0)})
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
-            <View style={styles.payModalButtonRow}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setPayModalVisible(false)}
-              >
-                <Text style={styles.cancelBtnText}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmPayBtn}
-                onPress={handleConfirmPayment}
-              >
-                <Text style={styles.confirmPayBtnText}>Tandai Lunas</Text>
-              </TouchableOpacity>
+              <View style={styles.payModalButtonRow}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setPayModalVisible(false)}
+                >
+                  <Text style={styles.cancelBtnText}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.confirmPayBtn}
+                  onPress={handleConfirmPayment}
+                >
+                  <Text style={styles.confirmPayBtnText}>Tandai Lunas</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

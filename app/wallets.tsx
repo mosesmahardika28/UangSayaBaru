@@ -2,14 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactions } from "../context/TransactionContext";
@@ -62,7 +64,7 @@ export default function WalletsScreen() {
   // Fungsi Menyimpan Data (Tambah / Edit)
   const handleSave = () => {
     if (!walletName.trim()) {
-      alert("Nama dompet tidak boleh kosong!");
+      Alert.alert("Perhatian", "Nama dompet tidak boleh kosong!");
       return;
     }
 
@@ -181,69 +183,74 @@ export default function WalletsScreen() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
         >
-          <View
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {modalMode === "add" ? "Tambah Dompet" : "Edit Dompet"}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMain} />
-              </TouchableOpacity>
-            </View>
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {modalMode === "add" ? "Tambah Dompet" : "Edit Dompet"}
+                </Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textMain} />
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nama Dompet</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Contoh: OVO, Rekening Mandiri..."
-                value={walletName}
-                onChangeText={setWalletName}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Saldo Awal (Rp)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="numeric"
-                value={walletBalance}
-                onChangeText={setWalletBalance}
-              />
-              <Text style={styles.helperText}>
-                Isi saldo awal jika dompet ini sudah memiliki uang sebelum Anda
-                mencatat transaksi.
-              </Text>
-            </View>
-
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Simpan Dompet</Text>
-            </TouchableOpacity>
-
-            {modalMode === "edit" && (
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDelete}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  color={colors.danger}
-                  style={{ marginRight: 6 }}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nama Dompet</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: OVO, Rekening Mandiri..."
+                  value={walletName}
+                  onChangeText={setWalletName}
                 />
-                <Text style={styles.deleteButtonText}>Hapus Dompet</Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Saldo Awal (Rp)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={walletBalance}
+                  onChangeText={setWalletBalance}
+                />
+                <Text style={styles.helperText}>
+                  Isi saldo awal jika dompet ini sudah memiliki uang sebelum
+                  Anda mencatat transaksi.
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Simpan Dompet</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        </TouchableOpacity>
+
+              {modalMode === "edit" && (
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={handleDelete}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={colors.danger}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.deleteButtonText}>Hapus Dompet</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

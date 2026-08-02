@@ -2,13 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactions } from "../context/TransactionContext";
@@ -24,7 +26,7 @@ const colors = {
 
 export default function BudgetSettingScreen() {
   const router = useRouter();
-  const { budget, setBudget } = useTransactions(); // Pastikan state budget & setBudget sudah ada di context
+  const { budget, setBudget } = useTransactions();
 
   const [amount, setAmount] = useState(
     budget?.amount ? budget.amount.toString() : "",
@@ -62,95 +64,103 @@ export default function BudgetSettingScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.textMain} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Atur Anggaran</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.label}>Pilih Periode Anggaran</Text>
-        <View style={styles.periodRow}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.header}>
           <TouchableOpacity
-            style={[
-              styles.periodBtn,
-              period === "monthly" && styles.periodBtnActive,
-            ]}
-            onPress={() => setPeriod("monthly")}
+            onPress={() => router.back()}
+            style={styles.backBtn}
           >
-            <Text
-              style={[
-                styles.periodText,
-                period === "monthly" && styles.periodTextActive,
-              ]}
-            >
-              Per Bulan
-            </Text>
+            <Ionicons name="arrow-back" size={24} color={colors.textMain} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.periodBtn,
-              period === "custom" && styles.periodBtnActive,
-            ]}
-            onPress={() => setPeriod("custom")}
-          >
-            <Text
-              style={[
-                styles.periodText,
-                period === "custom" && styles.periodTextActive,
-              ]}
-            >
-              Beberapa Bulan
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.periodBtn,
-              period === "yearly" && styles.periodBtnActive,
-            ]}
-            onPress={() => setPeriod("yearly")}
-          >
-            <Text
-              style={[
-                styles.periodText,
-                period === "yearly" && styles.periodTextActive,
-              ]}
-            >
-              Per Tahun
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Atur Anggaran</Text>
+          <View style={{ width: 24 }} />
         </View>
 
-        {period === "custom" && (
-          <>
-            <Text style={styles.label}>Jumlah Bulan Durasi</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Contoh: 3 atau 6"
-              keyboardType="numeric"
-              value={durationMonths}
-              onChangeText={setDurationMonths}
-            />
-          </>
-        )}
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.label}>Pilih Periode Anggaran</Text>
+          <View style={styles.periodRow}>
+            <TouchableOpacity
+              style={[
+                styles.periodBtn,
+                period === "monthly" && styles.periodBtnActive,
+              ]}
+              onPress={() => setPeriod("monthly")}
+            >
+              <Text
+                style={[
+                  styles.periodText,
+                  period === "monthly" && styles.periodTextActive,
+                ]}
+              >
+                Per Bulan
+              </Text>
+            </TouchableOpacity>
 
-        <Text style={styles.label}>Batas Nominal Anggaran (Rp)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Contoh: 2000000"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={setAmount}
-        />
+            <TouchableOpacity
+              style={[
+                styles.periodBtn,
+                period === "custom" && styles.periodBtnActive,
+              ]}
+              onPress={() => setPeriod("custom")}
+            >
+              <Text
+                style={[
+                  styles.periodText,
+                  period === "custom" && styles.periodTextActive,
+                ]}
+              >
+                Beberapa Bulan
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
-        </TouchableOpacity>
-      </ScrollView>
+            <TouchableOpacity
+              style={[
+                styles.periodBtn,
+                period === "yearly" && styles.periodBtnActive,
+              ]}
+              onPress={() => setPeriod("yearly")}
+            >
+              <Text
+                style={[
+                  styles.periodText,
+                  period === "yearly" && styles.periodTextActive,
+                ]}
+              >
+                Per Tahun
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {period === "custom" && (
+            <>
+              <Text style={styles.label}>Jumlah Bulan Durasi</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Contoh: 3 atau 6"
+                keyboardType="numeric"
+                value={durationMonths}
+                onChangeText={setDurationMonths}
+              />
+            </>
+          )}
+
+          <Text style={styles.label}>Batas Nominal Anggaran (Rp)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Contoh: 2000000"
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={setAmount}
+          />
+
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

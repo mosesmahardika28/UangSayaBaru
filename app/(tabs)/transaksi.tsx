@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -12,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTransactions } from "../../context/TransactionContext";
+import { Transaction, useTransactions } from "../../context/TransactionContext";
 
 const colors = {
   background: "#FAFAFA",
@@ -42,6 +43,7 @@ const monthsNames = [
 ];
 
 export default function TransaksiScreen() {
+  const router = useRouter();
   const { transactions, wallets, categories, deleteTransaction } =
     useTransactions();
 
@@ -94,17 +96,40 @@ export default function TransaksiScreen() {
     return matchesYear && matchesMonth && matchesWallet && matchesSearch;
   });
 
-  const handleDelete = (id: string) => {
+  // Fungsi Interaksi Long Press (Edit & Hapus)
+  const handleLongPressTransaction = (item: Transaction) => {
     Alert.alert(
-      "Hapus Transaksi",
-      "Yakin ingin menghapus transaksi ini? Saldo dompet akan otomatis disesuaikan kembali.",
+      "Kelola Transaksi",
+      `Pilih tindakan untuk transaksi "${item.category}" (${formatRp(item.amount)})`,
       [
-        { text: "Batal", style: "cancel" },
         {
-          text: "Hapus",
-          style: "destructive",
-          onPress: () => deleteTransaction(id),
+          text: "Edit Transaksi",
+          onPress: () => {
+            router.push({
+              pathname: "/add-transaction",
+              params: { editId: item.id },
+            });
+          },
         },
+        {
+          text: "Hapus Transaksi",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Hapus Transaksi",
+              "Yakin ingin menghapus transaksi ini? Saldo dompet akan otomatis disesuaikan kembali.",
+              [
+                { text: "Batal", style: "cancel" },
+                {
+                  text: "Hapus",
+                  style: "destructive",
+                  onPress: () => deleteTransaction(item.id),
+                },
+              ],
+            );
+          },
+        },
+        { text: "Batal", style: "cancel" },
       ],
     );
   };
@@ -229,7 +254,7 @@ export default function TransaksiScreen() {
               <TouchableOpacity
                 style={styles.transactionItem}
                 activeOpacity={0.7}
-                onLongPress={() => handleDelete(t.id)}
+                onLongPress={() => handleLongPressTransaction(t)}
               >
                 <View
                   style={[

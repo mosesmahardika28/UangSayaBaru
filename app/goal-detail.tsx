@@ -2,13 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactions } from "../context/TransactionContext";
@@ -20,31 +23,56 @@ const baseColors = {
   textMuted: "#757575",
   border: "#EEEEEE",
   success: "#2E7D32",
+  danger: "#E53935",
 };
 
 export default function GoalDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { goals, wallets, depositToGoal, transactions } = useTransactions();
+  const {
+    goals,
+    wallets,
+    transactions,
+    depositToGoal,
+    withdrawFromGoal,
+    updateGoal,
+    deleteGoal,
+  } = useTransactions();
 
   const goal = goals.find((g) => g.id === id);
 
-  const [isDepositModalVisible, setDepositModalVisible] = useState(false);
+  // Modal State Nabung / Cairkan
+  const [isActionModalVisible, setActionModalVisible] = useState(false);
+  const [actionType, setActionType] = useState<"deposit" | "withdraw">(
+    "deposit",
+  );
   const [selectedWalletId, setSelectedWalletId] = useState(
     wallets[0]?.id || "",
   );
-  const [depositAmount, setDepositAmount] = useState("");
+  const [actionAmount, setActionAmount] = useState("");
+
+  // Modal State Edit Goal
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editTarget, setEditTarget] = useState("");
 
   if (!goal) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.emptyContainer}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={48}
+            color={baseColors.textMuted}
+          />
           <Text style={styles.emptyText}>Goal tidak ditemukan.</Text>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.replace("/goals" as any)}
             style={[styles.backBtnSimple, { backgroundColor: "#43A047" }]}
           >
-            <Text style={{ color: "#FFF", fontWeight: "bold" }}>Kembali</Text>
+            <Text style={{ color: "#FFF", fontWeight: "bold" }}>
+              Kembali ke Daftar
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -59,26 +87,113 @@ export default function GoalDetailScreen() {
   );
   const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
 
-  const depositHistory = transactions.filter(
-    (t) =>
-      t.type === "expense" &&
-      t.note &&
-      t.note.includes(`Nabung Target: ${goal.name}`),
-  );
+  // Filter transaksi yang terkait dengan target ini (menggunakan goalId)
+  const goalTransactions = transactions.filter((t) => t.goalId === goal.id);
 
-  const handleDeposit = () => {
-    const parsed = parseInt(depositAmount.replace(/[^0-9]/g, "")) || 0;
+  // Hitung kontribusi bersih dari tiap dompet untuk target ini
+  const walletBreakdown: { [walletId: string]: number } = {};
+  goalTransactions.forEach((t) => {
+    if (t.toWalletId === "system_goal") {
+      walletBreakdown[t.walletId] =
+        (walletBreakdown[t.walletId] || 0) + t.amount;
+    } else if (t.walletId === "system_goal" && t.toWalletId) {
+      walletBreakdown[t.toWalletId] =
+        (walletBreakdown[t.toWalletId] || 0) - t.amount;
+    }
+  });
+
+  const openActionModal = (type: "deposit" | "withdraw") => {
+    setActionType(type);
+    setActionAmount("");
+    if (wallets.length > 0) setSelectedWalletId(wallets[0].id);
+    setActionModalVisible(true);
+  };
+
+  const handleExecuteAction = async () => {
+    const parsed = parseInt(actionAmount.replace(/[^0-9]/g, "")) || 0;
     if (parsed <= 0) {
-      alert("Masukkan nominal deposit yang valid!");
+      Alert.alert("Perhatian", "Masukkan nominal yang valid!");
       return;
     }
 
-    depositToGoal(goal.id, selectedWalletId, parsed);
-    setDepositAmount("");
-    setDepositModalVisible(false);
+    if (!selectedWalletId) {
+      Alert.alert("Perhatian", "Pilih dompet terlebih dahulu!");
+      return;
+    }
+
+    try {
+      if (actionType === "deposit") {
+        await depositToGoal(goal.id, selectedWalletId, parsed);
+        Alert.alert("Sukses", `Berhasil menabung ${formatRp(parsed)}!`);
+      } else {
+        await withdrawFromGoal(goal.id, selectedWalletId, parsed);
+        Alert.alert("Sukses", `Berhasil mencairkan ${formatRp(parsed)}!`);
+      }
+      setActionAmount("");
+      setActionModalVisible(false);
+    } catch (error: any) {
+      Alert.alert("Gagal", error.message || "Terjadi kesalahan sistem.");
+    }
   };
 
-  // Menggunakan warna asli dari goal (goal.color) agar sama persis dengan di halaman daftar
+  // Handler Menu Titik Tiga (Edit & Hapus)
+  const handleMenuPress = () => {
+    Alert.alert("Opsi Target", `Pilih tindakan untuk "${goal.name}"`, [
+      { text: "Edit Target", onPress: () => openEditModal() },
+      {
+        text: "Hapus Target",
+        style: "destructive",
+        onPress: () => handleDeleteGoal(),
+      },
+      { text: "Batal", style: "cancel" },
+    ]);
+  };
+
+  const openEditModal = () => {
+    setEditName(goal.name);
+    setEditTarget(goal.targetAmount.toString());
+    setEditModalVisible(true);
+  };
+
+  const handleUpdateGoal = () => {
+    if (!editName.trim() || !editTarget) {
+      Alert.alert("Perhatian", "Nama dan target nominal tidak boleh kosong!");
+      return;
+    }
+
+    const parsedTarget = parseInt(editTarget.replace(/[^0-9]/g, "")) || 0;
+    if (parsedTarget <= 0) {
+      Alert.alert("Perhatian", "Target nominal harus lebih dari 0!");
+      return;
+    }
+
+    updateGoal(goal.id, {
+      name: editName,
+      targetAmount: parsedTarget,
+    });
+
+    setEditModalVisible(false);
+    Alert.alert("Sukses", "Target berhasil diperbarui!");
+  };
+
+  const handleDeleteGoal = () => {
+    Alert.alert(
+      "Hapus Target Impian",
+      `Yakin ingin menghapus "${goal.name}"?`,
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Hapus",
+          style: "destructive",
+          onPress: () => {
+            deleteGoal(goal.id);
+            router.replace("/goals" as any);
+          },
+        },
+      ],
+    );
+  };
+
   const goalColor = goal.color || "#43A047";
 
   return (
@@ -88,7 +203,7 @@ export default function GoalDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={baseColors.textMain} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detail Goal</Text>
-        <TouchableOpacity style={styles.iconBtn}>
+        <TouchableOpacity onPress={handleMenuPress} style={styles.iconBtn}>
           <Ionicons
             name="ellipsis-vertical"
             size={20}
@@ -140,47 +255,115 @@ export default function GoalDetailScreen() {
           </View>
         </View>
 
-        {/* Sisa & Tanggal Target */}
+        {/* Sisa & Breakdown Dompet */}
         <View style={styles.metaBox}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Sisa</Text>
+            <Text style={styles.metaLabel}>Kekurangan Uang</Text>
             <Text style={styles.metaValue}>{formatRp(remaining)}</Text>
           </View>
-          <View style={[styles.metaRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.metaLabel}>Target Tanggal</Text>
-            <Text style={styles.metaValue}>
-              {goal.targetDate || "31 Des 2026"}
+
+          <View style={{ paddingVertical: 14 }}>
+            <Text style={[styles.metaLabel, { marginBottom: 8 }]}>
+              Sumber Tabungan:
             </Text>
+            {Object.keys(walletBreakdown).length === 0 ? (
+              <Text style={{ fontSize: 13, color: baseColors.textMuted }}>
+                Belum ada dana masuk.
+              </Text>
+            ) : (
+              Object.keys(walletBreakdown).map((wId) => {
+                const wObj = wallets.find((w) => w.id === wId);
+                const amount = walletBreakdown[wId];
+                if (amount <= 0) return null;
+
+                return (
+                  <View
+                    key={wId}
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, color: baseColors.textMain }}>
+                      • {wObj ? wObj.name : "Dompet"}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "bold",
+                        color: baseColors.textMain,
+                      }}
+                    >
+                      {formatRp(amount)}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
           </View>
         </View>
 
-        {/* Riwayat Deposit */}
-        <Text style={styles.sectionTitle}>Riwayat Deposit</Text>
-        {depositHistory.length === 0 ? (
-          <Text style={styles.noHistoryText}>Belum ada riwayat deposit.</Text>
+        {/* Riwayat Deposit & Withdraw */}
+        <Text style={styles.sectionTitle}>Riwayat Transaksi Target</Text>
+        {goalTransactions.length === 0 ? (
+          <Text style={styles.noHistoryText}>Belum ada riwayat aktivitas.</Text>
         ) : (
-          depositHistory.map((item) => (
-            <View key={item.id} style={styles.historyItem}>
-              <Text style={styles.historyDate}>
-                {new Date(item.date).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </Text>
-              <Text style={styles.historyAmount}>+{formatRp(item.amount)}</Text>
-            </View>
-          ))
+          goalTransactions.map((item) => {
+            const isDeposit = item.toWalletId === "system_goal";
+            const wObj = wallets.find(
+              (w) => w.id === (isDeposit ? item.walletId : item.toWalletId),
+            );
+
+            return (
+              <View key={item.id} style={styles.historyItem}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Ionicons
+                    name={isDeposit ? "arrow-down-circle" : "arrow-up-circle"}
+                    size={24}
+                    color={isDeposit ? baseColors.success : baseColors.danger}
+                    style={{ marginRight: 10 }}
+                  />
+                  <View>
+                    <Text style={styles.historyDate}>
+                      {isDeposit ? "Masuk dari " : "Cair ke "}
+                      <Text style={{ fontWeight: "bold" }}>
+                        {wObj ? wObj.name : "Dompet"}
+                      </Text>
+                    </Text>
+                    <Text style={{ fontSize: 12, color: baseColors.textMuted }}>
+                      {new Date(item.date).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.historyAmount,
+                    {
+                      color: isDeposit ? baseColors.success : baseColors.danger,
+                    },
+                  ]}
+                >
+                  {isDeposit ? "+" : "-"}
+                  {formatRp(item.amount)}
+                </Text>
+              </View>
+            );
+          })
         )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Tombol Deposit di Bawah dengan warna goal asli */}
+      {/* Tombol Deposit & Withdraw di Bawah */}
       <View style={styles.footerButtonWrapper}>
         <TouchableOpacity
           style={[styles.depositButton, { backgroundColor: goalColor }]}
-          onPress={() => setDepositModalVisible(true)}
+          onPress={() => openActionModal("deposit")}
         >
           <Ionicons
             name="add"
@@ -190,73 +373,178 @@ export default function GoalDetailScreen() {
           />
           <Text style={styles.depositButtonText}>Deposit</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.depositButton,
+            { backgroundColor: "#ECEFF1", marginLeft: 10 },
+          ]}
+          onPress={() => openActionModal("withdraw")}
+        >
+          <Ionicons
+            name="arrow-undo-outline"
+            size={20}
+            color={baseColors.textMain}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[styles.depositButtonText, { color: baseColors.textMain }]}
+          >
+            Cairkan
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Modal Input Deposit */}
-      <Modal visible={isDepositModalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setDepositModalVisible(false)}
+      {/* Modal Input Action (Nabung/Cairkan) */}
+      <Modal visible={isActionModalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
         >
-          <View
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setActionModalVisible(false)}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Tambah Tabungan</Text>
-              <TouchableOpacity onPress={() => setDepositModalVisible(false)}>
-                <Ionicons name="close" size={24} color={baseColors.textMain} />
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {actionType === "deposit"
+                    ? "Tambah Tabungan"
+                    : "Cairkan Target"}
+                </Text>
+                <TouchableOpacity onPress={() => setActionModalVisible(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={baseColors.textMain}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  {actionType === "deposit"
+                    ? "Pilih Dompet Sumber"
+                    : "Pilih Dompet Tujuan"}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {wallets.map((w) => (
+                    <TouchableOpacity
+                      key={w.id}
+                      style={[
+                        styles.walletChip,
+                        selectedWalletId === w.id && {
+                          backgroundColor: goalColor,
+                          borderColor: goalColor,
+                        },
+                      ]}
+                      onPress={() => setSelectedWalletId(w.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.walletChipText,
+                          selectedWalletId === w.id && { color: "#FFF" },
+                        ]}
+                      >
+                        {w.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nominal (Rp)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={actionAmount}
+                  onChangeText={setActionAmount}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  {
+                    backgroundColor:
+                      actionType === "deposit" ? goalColor : "#455A64",
+                  },
+                ]}
+                onPress={handleExecuteAction}
+              >
+                <Text style={styles.saveBtnText}>
+                  {actionType === "deposit"
+                    ? "Simpan Deposit"
+                    : "Proses Pencairan"}
+                </Text>
               </TouchableOpacity>
             </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Pilih Dompet Sumber</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {wallets.map((w) => (
-                  <TouchableOpacity
-                    key={w.id}
-                    style={[
-                      styles.walletChip,
-                      selectedWalletId === w.id && {
-                        backgroundColor: goalColor,
-                        borderColor: goalColor,
-                      },
-                    ]}
-                    onPress={() => setSelectedWalletId(w.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.walletChipText,
-                        selectedWalletId === w.id && { color: "#FFF" },
-                      ]}
-                    >
-                      {w.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nominal Deposit (Rp)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="numeric"
-                value={depositAmount}
-                onChangeText={setDepositAmount}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: goalColor }]}
-              onPress={handleDeposit}
+      {/* Modal Edit Target */}
+      <Modal visible={isEditModalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setEditModalVisible(false)}
+          >
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
             >
-              <Text style={styles.saveBtnText}>Simpan Deposit</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Target Impian</Text>
+                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={baseColors.textMain}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nama Target</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: Beli Laptop"
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Target Nominal (Rp)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={editTarget}
+                  onChangeText={setEditTarget}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: goalColor }]}
+                onPress={handleUpdateGoal}
+              >
+                <Text style={styles.saveBtnText}>Simpan Perubahan</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -349,19 +637,20 @@ const styles = StyleSheet.create({
   historyAmount: {
     fontSize: 14,
     fontWeight: "bold",
-    color: baseColors.success,
   },
   footerButtonWrapper: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    flexDirection: "row",
     backgroundColor: baseColors.background,
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: baseColors.border,
   },
   depositButton: {
+    flex: 1,
     height: 52,
     borderRadius: 16,
     flexDirection: "row",
@@ -375,6 +664,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
+    marginTop: 10,
   },
   modalOverlay: {
     flex: 1,

@@ -29,6 +29,7 @@ export interface Transaction {
   walletId: string;
   toWalletId?: string;
   isDebtRelated?: boolean;
+  goalId?: string; // Melacak riwayat transaksi khusus target impian
 }
 
 export interface CategoryItem {
@@ -50,7 +51,6 @@ export interface Goal {
   currentAmount: number;
   icon: string;
   color: string;
-  targetDate?: string;
 }
 
 export interface Debt {
@@ -68,8 +68,11 @@ export interface Debt {
 
 interface TransactionContextType {
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, "id">) => void;
-  updateTransaction: (id: string, transaction: Omit<Transaction, "id">) => void;
+  addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>;
+  updateTransaction: (
+    id: string,
+    transaction: Omit<Transaction, "id">,
+  ) => Promise<void>;
   deleteTransaction: (id: string) => void;
 
   categories: CategoryItem[];
@@ -88,8 +91,16 @@ interface TransactionContextType {
   addGoal: (goal: Omit<Goal, "id" | "currentAmount">) => void;
   updateGoal: (id: string, goal: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
-  depositToGoal: (goalId: string, walletId: string, amount: number) => void;
-  withdrawFromGoal: (goalId: string, walletId: string, amount: number) => void;
+  depositToGoal: (
+    goalId: string,
+    walletId: string,
+    amount: number,
+  ) => Promise<void>;
+  withdrawFromGoal: (
+    goalId: string,
+    walletId: string,
+    amount: number,
+  ) => Promise<void>;
 
   debts: Debt[];
   addDebt: (
@@ -305,7 +316,36 @@ export function TransactionProvider({
     return true;
   };
 
+  // Hitung saldo dompet berdasarkan riwayat transaksi
+  const getWalletBalance = (walletId: string, excludeTxId?: string) => {
+    const wallet = wallets.find((w) => w.id === walletId);
+    if (!wallet) return 0;
+    let currentBalance = wallet.initialBalance;
+    transactions.forEach((t) => {
+      if (excludeTxId && t.id === excludeTxId) return;
+      if (t.walletId === walletId) {
+        if (t.type === "income") currentBalance += t.amount;
+        if (t.type === "expense") currentBalance -= t.amount;
+        if (t.type === "transfer") currentBalance -= t.amount;
+      }
+      if (t.toWalletId === walletId && t.type === "transfer")
+        currentBalance += t.amount;
+    });
+    return currentBalance;
+  };
+
   const addTransaction = async (newTx: Omit<Transaction, "id">) => {
+    // Pengecekan saldo diabaikan jika transaksi keluar dari dompet virtual sistem (pencairan goal)
+    if (newTx.type === "expense" || newTx.type === "transfer") {
+      if (newTx.walletId !== "system_goal") {
+        const currentBal = getWalletBalance(newTx.walletId);
+        if (currentBal < newTx.amount) {
+          return Promise.reject(
+            new Error("Saldo dompet tidak mencukupi! Saldo tidak boleh minus."),
+          );
+        }
+      }
+    }
     const transaction: Transaction = { ...newTx, id: Date.now().toString() };
     const updated = [transaction, ...transactions];
     setTransactions(updated);
@@ -316,6 +356,16 @@ export function TransactionProvider({
     id: string,
     updatedTx: Omit<Transaction, "id">,
   ) => {
+    if (updatedTx.type === "expense" || updatedTx.type === "transfer") {
+      if (updatedTx.walletId !== "system_goal") {
+        const currentBal = getWalletBalance(updatedTx.walletId, id);
+        if (currentBal < updatedTx.amount) {
+          return Promise.reject(
+            new Error("Saldo dompet tidak mencukupi! Saldo tidak boleh minus."),
+          );
+        }
+      }
+    }
     const updatedTransactions = transactions.map((t) =>
       t.id === id ? { ...updatedTx, id } : t,
     );
@@ -404,6 +454,7 @@ export function TransactionProvider({
     await AsyncStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(updated));
   };
 
+  // MENABUNG: Transfer dari Dompet Asli -> Ke Dompet Virtual Sistem (Target)
   const depositToGoal = async (
     goalId: string,
     walletId: string,
@@ -411,21 +462,35 @@ export function TransactionProvider({
   ) => {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
+
+    // Cek saldo dompet asal mencukupi atau tidak
+    const currentBal = getWalletBalance(walletId);
+    if (currentBal < amount) {
+      return Promise.reject(
+        new Error("Saldo dompet tidak mencukupi untuk menabung!"),
+      );
+    }
+
     const updatedGoals = goals.map((g) =>
       g.id === goalId ? { ...g, currentAmount: g.currentAmount + amount } : g,
     );
     setGoals(updatedGoals);
     await AsyncStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(updatedGoals));
+
+    // Catat transaksi transfer dengan menyematkan goalId
     await addTransaction({
-      type: "expense",
+      type: "transfer",
       amount: amount,
       category: "Tabungan",
       date: new Date().toISOString(),
-      note: `Nabung Target: ${goal.name}`,
+      note: `Menabung ke Target: ${goal.name}`,
       walletId: walletId,
+      toWalletId: "system_goal",
+      goalId: goalId,
     });
   };
 
+  // MENCAIRKAN: Transfer dari Dompet Virtual Sistem -> Ke Dompet Asli Pilihan
   const withdrawFromGoal = async (
     goalId: string,
     walletId: string,
@@ -433,7 +498,13 @@ export function TransactionProvider({
   ) => {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
+
+    if (goal.currentAmount <= 0) {
+      return Promise.reject(new Error("Saldo target impian masih kosong!"));
+    }
+
     const actualWithdraw = Math.min(amount, goal.currentAmount);
+
     const updatedGoals = goals.map((g) =>
       g.id === goalId
         ? { ...g, currentAmount: g.currentAmount - actualWithdraw }
@@ -441,13 +512,17 @@ export function TransactionProvider({
     );
     setGoals(updatedGoals);
     await AsyncStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(updatedGoals));
+
+    // Catat transaksi transfer pencairan dengan menyematkan goalId
     await addTransaction({
-      type: "income",
+      type: "transfer",
       amount: actualWithdraw,
       category: "Pencairan Target",
       date: new Date().toISOString(),
       note: `Cairkan Target: ${goal.name}`,
-      walletId: walletId,
+      walletId: "system_goal",
+      toWalletId: walletId,
+      goalId: goalId,
     });
   };
 
