@@ -22,9 +22,6 @@ export default function BudgetSettingScreen() {
   const { colors, theme } = useTheme();
   const isDarkMode = theme === "dark";
 
-  const [amount, setAmount] = useState(
-    budget?.amount ? budget.amount.toString() : "",
-  );
   const [period, setPeriod] = useState<"monthly" | "custom" | "yearly">(
     budget?.period || "monthly",
   );
@@ -32,26 +29,22 @@ export default function BudgetSettingScreen() {
     budget?.durationMonths ? budget.durationMonths.toString() : "3",
   );
 
-  const handleSave = () => {
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      Alert.alert("Error", "Masukkan nominal anggaran yang valid.");
-      return;
-    }
+  const formatRp = (angka: number) => "Rp " + angka.toLocaleString("id-ID");
 
+  const handleSave = () => {
     const newBudget = {
-      amount: numericAmount,
+      amount: budget.amount, // Tetap menggunakan total akumulasi dari kategori
       period,
       durationMonths:
         period === "custom" ? parseInt(durationMonths) || 3 : undefined,
-      startDate: new Date().toISOString().split("T")[0],
+      startDate: budget.startDate || new Date().toISOString().split("T")[0],
     };
 
     if (setBudget) {
       setBudget(newBudget);
     }
 
-    Alert.alert("Berhasil", "Pengaturan anggaran berhasil disimpan!", [
+    Alert.alert("Berhasil", "Pengaturan periode anggaran berhasil disimpan!", [
       { text: "OK", onPress: () => router.back() },
     ]);
   };
@@ -83,6 +76,24 @@ export default function BudgetSettingScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.container}>
+          {/* Kartu Informasi Total Anggaran Otomatis (Bottom-Up) */}
+          <View
+            style={[
+              styles.infoCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+              Total Anggaran (Otomatis dari Kategori):
+            </Text>
+            <Text style={[styles.infoVal, { color: colors.primary }]}>
+              {formatRp(budget.amount)}
+            </Text>
+            <Text style={[styles.infoSub, { color: colors.textMuted }]}>
+              Ubah nominal anggaran melalui menu Kategori & Anggaran.
+            </Text>
+          </View>
+
           <Text style={[styles.label, { color: colors.textMain }]}>
             Pilih Periode Anggaran
           </Text>
@@ -186,30 +197,11 @@ export default function BudgetSettingScreen() {
             </>
           )}
 
-          <Text style={[styles.label, { color: colors.textMain }]}>
-            Batas Nominal Anggaran (Rp)
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                color: colors.textMain,
-              },
-            ]}
-            placeholder="Contoh: 2000000"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="numeric"
-            value={amount}
-            onChangeText={setAmount}
-          />
-
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: colors.primary }]}
             onPress={handleSave}
           >
-            <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
+            <Text style={styles.saveButtonText}>Simpan Pengaturan</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -230,6 +222,16 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { padding: 20 },
+  infoCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+    alignItems: "center",
+  },
+  infoLabel: { fontSize: 13, marginBottom: 4 },
+  infoVal: { fontSize: 22, fontWeight: "bold", marginBottom: 6 },
+  infoSub: { fontSize: 11, textAlign: "center" },
   label: {
     fontSize: 14,
     fontWeight: "600",

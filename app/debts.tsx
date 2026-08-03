@@ -34,9 +34,11 @@ export default function DebtsScreen() {
   );
   const [payWalletId, setPayWalletId] = useState<string>("");
 
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState("31 Des 2026");
+  const [dueDate, setDueDate] = useState(todayStr);
   const [note, setNote] = useState("");
   const [selectedWalletId, setSelectedWalletId] = useState<string>(
     wallets[0]?.id || "",
@@ -44,6 +46,15 @@ export default function DebtsScreen() {
 
   const formatRp = (angka: number) => "Rp " + angka.toLocaleString("id-ID");
   const filteredDebts = debts.filter((d) => d.type === activeTab);
+
+  const handleOpenAddModal = () => {
+    setName("");
+    setAmount("");
+    setDueDate(new Date().toISOString().split("T")[0]);
+    setNote("");
+    setSelectedWalletId(wallets[0]?.id || "");
+    setModalVisible(true);
+  };
 
   const handleSave = () => {
     if (!name.trim() || !amount) {
@@ -69,7 +80,7 @@ export default function DebtsScreen() {
         name,
         amount: parsedAmount,
         type: activeTab,
-        dueDate,
+        dueDate: dueDate || todayStr,
         note,
         walletId: targetWalletId,
       },
@@ -142,7 +153,7 @@ export default function DebtsScreen() {
         <Text style={[styles.headerTitle, { color: colors.textMain }]}>
           Utang & Piutang
         </Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <TouchableOpacity onPress={handleOpenAddModal}>
           <Ionicons
             name="add-circle-outline"
             size={28}
@@ -279,11 +290,11 @@ export default function DebtsScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {item.note && (
+              {item.note ? (
                 <Text style={[styles.cardNote, { color: colors.textMuted }]}>
                   Catatan: {item.note}
                 </Text>
-              )}
+              ) : null}
             </View>
           ))
         )}
@@ -357,6 +368,26 @@ export default function DebtsScreen() {
                   keyboardType="numeric"
                   value={amount}
                   onChangeText={setAmount}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Tenggat Waktu (YYYY-MM-DD)
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.textMuted}
+                  value={dueDate}
+                  onChangeText={setDueDate}
                 />
               </View>
 

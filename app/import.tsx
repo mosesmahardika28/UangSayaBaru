@@ -12,21 +12,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { useTransactions } from "../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-  accent: "#F57C00",
-};
 
 export default function ImportScreen() {
   const router = useRouter();
   const { addTransaction, wallets } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
+
   const [fileName, setFileName] = useState<string | null>(null);
   const [importCount, setImportCount] = useState<number | null>(null);
 
@@ -118,29 +112,41 @@ export default function ImportScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Impor CSV Keuangan</Text>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Impor CSV Keuangan
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <View
-            style={[styles.iconBg, { backgroundColor: colors.accent + "20" }]}
+            style={[
+              styles.iconBg,
+              {
+                backgroundColor: isDarkMode ? "#3E2723" : "#F57C0020",
+              },
+            ]}
           >
-            <Ionicons
-              name="document-text-outline"
-              size={24}
-              color={colors.accent}
-            />
+            <Ionicons name="document-text-outline" size={24} color="#F57C00" />
           </View>
           <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={styles.infoTitle}>Unggah File CSV</Text>
-            <Text style={styles.infoSub}>
+            <Text style={[styles.infoTitle, { color: colors.textMain }]}>
+              Unggah File CSV
+            </Text>
+            <Text style={[styles.infoSub, { color: colors.textMuted }]}>
               Pilih file riwayat transaksi berformat .csv yang sebelumnya Anda
               ekspor dari aplikasi ini.
             </Text>
@@ -148,7 +154,7 @@ export default function ImportScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.importButton}
+          style={[styles.importButton, { backgroundColor: "#F57C00" }]}
           onPress={handlePickDocument}
         >
           <Ionicons
@@ -161,16 +167,23 @@ export default function ImportScreen() {
         </TouchableOpacity>
 
         {fileName && (
-          <View style={styles.resultBox}>
+          <View
+            style={[
+              styles.resultBox,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <Ionicons
               name="checkmark-circle"
               size={24}
               color={colors.primary}
             />
             <View style={{ marginLeft: 12, flex: 1 }}>
-              <Text style={styles.resultTitle}>File: {fileName}</Text>
+              <Text style={[styles.resultTitle, { color: colors.textMain }]}>
+                File: {fileName}
+              </Text>
               {importCount !== null && (
-                <Text style={styles.resultSub}>
+                <Text style={[styles.resultSub, { color: colors.textMuted }]}>
                   Berhasil mengimpor {importCount} transaksi.
                 </Text>
               )}
@@ -183,7 +196,7 @@ export default function ImportScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -192,15 +205,13 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { padding: 20 },
   infoCard: {
     flexDirection: "row",
-    backgroundColor: colors.card,
     padding: 18,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: "center",
     marginBottom: 20,
   },
@@ -214,12 +225,10 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: colors.textMain,
     marginBottom: 2,
   },
-  infoSub: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
+  infoSub: { fontSize: 12, lineHeight: 18 },
   importButton: {
-    backgroundColor: colors.accent,
     height: 52,
     borderRadius: 14,
     flexDirection: "row",
@@ -231,12 +240,10 @@ const styles = StyleSheet.create({
   resultBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
   },
-  resultTitle: { fontSize: 14, fontWeight: "600", color: colors.textMain },
-  resultSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  resultTitle: { fontSize: 14, fontWeight: "600" },
+  resultSub: { fontSize: 12, marginTop: 2 },
 });

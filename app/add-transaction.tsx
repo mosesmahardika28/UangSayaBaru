@@ -91,6 +91,28 @@ export default function AddTransactionScreen() {
         return;
       }
     } else {
+      // CEK JIKA BELUM ADA KATEGORI SAMA SEKALI
+      if (availableCategories.length === 0) {
+        Alert.alert(
+          "Kategori Belum Ada",
+          `Anda belum memiliki kategori untuk ${
+            type === "expense" ? "pengeluaran" : "pemasukan"
+          }. Buat kategori terlebih dahulu untuk melanjutkan transaksi.`,
+          [
+            { text: "Batal", style: "cancel" },
+            {
+              text: "Tambah Kategori",
+              onPress: () =>
+                router.push({
+                  pathname: "/add-category" as any,
+                  params: { type },
+                }),
+            },
+          ],
+        );
+        return;
+      }
+
       if (!selectedCategory) {
         Alert.alert("Perhatian", "Pilih kategori transaksi terlebih dahulu!");
         return;
@@ -325,45 +347,78 @@ export default function AddTransactionScreen() {
               <Text style={[styles.label, { color: colors.textMuted }]}>
                 Kategori
               </Text>
-              <View style={styles.categoryGrid}>
-                {availableCategories.map((c) => (
-                  <TouchableOpacity
-                    key={c.id || c.name}
+
+              {availableCategories.length === 0 ? (
+                <TouchableOpacity
+                  style={[
+                    styles.emptyCategoryCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/add-category" as any,
+                      params: { type },
+                    })
+                  }
+                >
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={24}
+                    color={colors.primary}
+                  />
+                  <Text
                     style={[
-                      styles.categoryCard,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                      },
-                      selectedCategory === c.name && {
-                        borderColor: colors.primary,
-                        backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
-                      },
+                      styles.emptyCategoryText,
+                      { color: colors.primary },
                     ]}
-                    onPress={() => setSelectedCategory(c.name)}
                   >
-                    <Ionicons
-                      name={c.icon as any}
-                      size={22}
-                      color={c.color || colors.primary}
-                      style={{ marginBottom: 4 }}
-                    />
-                    <Text
+                    Belum ada kategori. Klik untuk membuat baru.
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.categoryGrid}>
+                  {availableCategories.map((c) => (
+                    <TouchableOpacity
+                      key={c.id || c.name}
                       style={[
-                        styles.categoryText,
-                        { color: colors.textMain },
+                        styles.categoryCard,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                        },
                         selectedCategory === c.name && {
-                          fontWeight: "bold",
-                          color: colors.primary,
+                          borderColor: colors.primary,
+                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
                         },
                       ]}
-                      numberOfLines={1}
+                      onPress={() => setSelectedCategory(c.name)}
                     >
-                      {c.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                      <Ionicons
+                        name={c.icon as any}
+                        size={22}
+                        color={c.color || colors.primary}
+                        style={{ marginBottom: 4 }}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          { color: colors.textMain },
+                          selectedCategory === c.name && {
+                            fontWeight: "bold",
+                            color: colors.primary,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {c.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           )}
 
@@ -472,6 +527,20 @@ const styles = StyleSheet.create({
     margin: "1%",
   },
   categoryText: { fontSize: 11 },
+  emptyCategoryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    gap: 8,
+  },
+  emptyCategoryText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
   saveButton: {
     height: 52,
     borderRadius: 14,

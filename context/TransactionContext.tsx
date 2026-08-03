@@ -29,7 +29,7 @@ export interface Transaction {
   walletId: string;
   toWalletId?: string;
   isDebtRelated?: boolean;
-  goalId?: string; // Melacak riwayat transaksi khusus target impian
+  goalId?: string;
 }
 
 export interface CategoryItem {
@@ -44,7 +44,6 @@ export interface CategoryItem {
   budgetDuration?: number;
 }
 
-// Menambahkan alias Category agar cocok dengan fungsi import
 export type Category = CategoryItem;
 
 export interface Goal {
@@ -115,10 +114,10 @@ interface TransactionContextType {
 
   budget: Budget;
   setBudget: (budget: Budget) => void;
+
   isTransactionWithinBudgetPeriod: (transactionDate: string) => boolean;
   resetAppData: () => Promise<void>;
 
-  // Menambahkan importData ke dalam context type
   importData: (data: {
     transactions?: Transaction[];
     wallets?: Wallet[];
@@ -138,6 +137,7 @@ const WALLET_STORAGE_KEY = "@uangsaya_wallets";
 const GOAL_STORAGE_KEY = "@uangsaya_goals";
 const DEBT_STORAGE_KEY = "@uangsaya_debts";
 
+// HANYA 3 KATEGORI PENGELUARAN AWAL, PEMASUKAN KOSONG
 const defaultCategories: CategoryItem[] = [
   {
     id: "1",
@@ -146,7 +146,7 @@ const defaultCategories: CategoryItem[] = [
     icon: "restaurant-outline",
     color: "#0097A7",
     bg: "#E0F7FA",
-    budget: 1500000,
+    budget: 0,
     budgetPeriod: "monthly",
   },
   {
@@ -156,7 +156,7 @@ const defaultCategories: CategoryItem[] = [
     icon: "bus-outline",
     color: "#F57C00",
     bg: "#FFF3E0",
-    budget: 500000,
+    budget: 0,
     budgetPeriod: "monthly",
   },
   {
@@ -166,48 +166,8 @@ const defaultCategories: CategoryItem[] = [
     icon: "cart-outline",
     color: "#E91E63",
     bg: "#FCE4EC",
-    budget: 1000000,
+    budget: 0,
     budgetPeriod: "monthly",
-  },
-  {
-    id: "8",
-    name: "Gaji",
-    type: "income",
-    icon: "wallet-outline",
-    color: "#2E7D32",
-    bg: "#E8F5E9",
-  },
-  {
-    id: "9",
-    name: "Piutang",
-    type: "expense",
-    icon: "swap-horizontal",
-    color: "#1E88E5",
-    bg: "#E3F2FD",
-  },
-  {
-    id: "10",
-    name: "Utang",
-    type: "income",
-    icon: "swap-horizontal",
-    color: "#E53935",
-    bg: "#FFEBEE",
-  },
-  {
-    id: "11",
-    name: "Pelunasan Piutang",
-    type: "income",
-    icon: "checkmark-circle-outline",
-    color: "#43A047",
-    bg: "#E8F5E9",
-  },
-  {
-    id: "12",
-    name: "Pelunasan Utang",
-    type: "expense",
-    icon: "checkmark-circle-outline",
-    color: "#E53935",
-    bg: "#FFEBEE",
   },
 ];
 
@@ -221,7 +181,7 @@ const defaultWallets: Wallet[] = [
   },
   {
     id: "w2",
-    name: "Rekening BCA",
+    name: "BCA",
     icon: "card",
     color: "#1E88E5",
     initialBalance: 0,
@@ -239,10 +199,10 @@ export function TransactionProvider({
   const [wallets, setWallets] = useState<Wallet[]>(defaultWallets);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [monthlyBudget, setMonthlyBudgetState] = useState<number>(1500000);
+  const [monthlyBudget, setMonthlyBudgetState] = useState<number>(0);
 
-  const [budget, setBudgetState] = useState<Budget>({
-    amount: 1500000,
+  const [budgetState, setBudgetState] = useState<Budget>({
+    amount: 0,
     period: "monthly",
     startDate: new Date().toISOString().split("T")[0],
   });
@@ -291,9 +251,9 @@ export function TransactionProvider({
       setWallets(defaultWallets);
       setGoals([]);
       setDebts([]);
-      setMonthlyBudgetState(1500000);
-      setBudget({
-        amount: 1500000,
+      setMonthlyBudgetState(0);
+      setBudgetState({
+        amount: 0,
         period: "monthly",
         startDate: new Date().toISOString().split("T")[0],
       });
@@ -305,6 +265,17 @@ export function TransactionProvider({
   const setBudget = async (newBudget: Budget) => {
     setBudgetState(newBudget);
     await AsyncStorage.setItem(BUDGET_CONFIG_KEY, JSON.stringify(newBudget));
+  };
+
+  // LOGIKA BOTTOM-UP: Total Anggaran = Akumulasi dari Semua Anggaran Kategori Pengeluaran
+  const totalCalculatedBudget = categories
+    .filter((c) => c.type === "expense" && c.budget && c.budget > 0)
+    .reduce((sum, c) => sum + (c.budget || 0), 0);
+
+  const budget: Budget = {
+    ...budgetState,
+    amount:
+      totalCalculatedBudget > 0 ? totalCalculatedBudget : budgetState.amount,
   };
 
   const isTransactionWithinBudgetPeriod = (transactionDate: string) => {
@@ -653,7 +624,6 @@ export function TransactionProvider({
     await AsyncStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budgetVal));
   };
 
-  // Fungsi Import Data Cadangan Full (JSON)
   const importData = async (data: {
     transactions?: Transaction[];
     wallets?: Wallet[];
@@ -731,7 +701,7 @@ export function TransactionProvider({
         setBudget,
         isTransactionWithinBudgetPeriod,
         resetAppData,
-        importData, // Diikutsertakan di provider
+        importData,
       }}
     >
       {children}

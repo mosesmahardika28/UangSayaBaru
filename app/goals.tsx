@@ -15,17 +15,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { Goal, useTransactions } from "../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-  danger: "#E53935",
-};
 
 export default function GoalsScreen() {
   const router = useRouter();
@@ -37,6 +28,8 @@ export default function GoalsScreen() {
     depositToGoal,
     withdrawFromGoal,
   } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   const [isAddModalVisible, setAddModalVisible] = useState(false);
   const [goalName, setGoalName] = useState("");
@@ -139,15 +132,19 @@ export default function GoalsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Target Impian (Goals)</Text>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Target Impian (Goals)
+        </Text>
         <TouchableOpacity onPress={() => setAddModalVisible(true)}>
           <Ionicons
             name="add-circle-outline"
@@ -161,12 +158,14 @@ export default function GoalsScreen() {
         {goals.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="trophy-outline" size={56} color={colors.border} />
-            <Text style={styles.emptyText}>Belum ada target impian.</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.textMain }]}>
+              Belum ada target impian.
+            </Text>
+            <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
               Buat target baru untuk mulai menabung secara disiplin!
             </Text>
             <TouchableOpacity
-              style={styles.createBtnBtn}
+              style={[styles.createBtnBtn, { backgroundColor: colors.primary }]}
               onPress={() => setAddModalVisible(true)}
             >
               <Text style={styles.createBtnText}>+ Buat Target Pertama</Text>
@@ -178,11 +177,15 @@ export default function GoalsScreen() {
               Math.round((item.currentAmount / item.targetAmount) * 100),
               100,
             );
+            const goalColor = item.color || colors.primary;
 
             return (
               <TouchableOpacity
                 key={item.id}
-                style={styles.goalCard}
+                style={[
+                  styles.goalCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 activeOpacity={0.8}
                 onPress={() =>
                   router.push({
@@ -196,18 +199,24 @@ export default function GoalsScreen() {
                     <View
                       style={[
                         styles.iconBg,
-                        { backgroundColor: item.color + "20" },
+                        { backgroundColor: goalColor + "20" },
                       ]}
                     >
                       <Ionicons
                         name={item.icon as any}
                         size={22}
-                        color={item.color}
+                        color={goalColor}
                       />
                     </View>
                     <View>
-                      <Text style={styles.goalName}>{item.name}</Text>
-                      <Text style={styles.goalSub}>
+                      <Text
+                        style={[styles.goalName, { color: colors.textMain }]}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={[styles.goalSub, { color: colors.textMuted }]}
+                      >
                         {percentage}% Terkumpul
                       </Text>
                     </View>
@@ -226,20 +235,27 @@ export default function GoalsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.progressBg}>
+                <View
+                  style={[
+                    styles.progressBg,
+                    { backgroundColor: isDarkMode ? "#2C2C2C" : "#E0E0E0" },
+                  ]}
+                >
                   <View
                     style={[
                       styles.progressFill,
-                      { width: `${percentage}%`, backgroundColor: item.color },
+                      { width: `${percentage}%`, backgroundColor: goalColor },
                     ]}
                   />
                 </View>
 
                 <View style={styles.amountRow}>
-                  <Text style={styles.currentAmount}>
+                  <Text style={[styles.currentAmount, { color: goalColor }]}>
                     {formatRp(item.currentAmount)}
                   </Text>
-                  <Text style={styles.targetAmount}>
+                  <Text
+                    style={[styles.targetAmount, { color: colors.textMuted }]}
+                  >
                     Target: {formatRp(item.targetAmount)}
                   </Text>
                 </View>
@@ -259,7 +275,12 @@ export default function GoalsScreen() {
                     <Text style={styles.btnActionText}>Nabung</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.btnAction, { backgroundColor: "#ECEFF1" }]}
+                    style={[
+                      styles.btnAction,
+                      {
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#ECEFF1",
+                      },
+                    ]}
                     onPress={(e) => {
                       e.stopPropagation();
                       openActionModal(item, "withdraw");
@@ -295,36 +316,63 @@ export default function GoalsScreen() {
             onPress={() => setAddModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.card }]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Buat Target Impian</Text>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                  Buat Target Impian
+                </Text>
                 <TouchableOpacity onPress={() => setAddModalVisible(false)}>
                   <Ionicons name="close" size={24} color={colors.textMain} />
                 </TouchableOpacity>
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nama Target</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nama Target
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="Contoh: Beli Laptop Baru"
+                  placeholderTextColor={colors.textMuted}
                   value={goalName}
                   onChangeText={setGoalName}
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Target Nominal (Rp)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Target Nominal (Rp)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="Contoh: 10000000"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   value={goalTarget}
                   onChangeText={setGoalTarget}
                 />
               </View>
               <TouchableOpacity
-                style={styles.saveBtn}
+                style={[styles.saveBtn, { backgroundColor: colors.primary }]}
                 onPress={handleCreateGoal}
               >
                 <Text style={styles.saveBtnText}>Simpan Target</Text>
@@ -346,11 +394,16 @@ export default function GoalsScreen() {
             onPress={() => setActionModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.card }]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
                   {actionType === "deposit"
                     ? `Nabung ke ${selectedGoal?.name}`
                     : `Cairkan ${selectedGoal?.name}`}
@@ -360,7 +413,9 @@ export default function GoalsScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Pilih Dompet</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Pilih Dompet
+                </Text>
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -370,6 +425,10 @@ export default function GoalsScreen() {
                     <TouchableOpacity
                       style={[
                         styles.walletChip,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
                         selectedWalletId === w.id && styles.walletChipActive,
                       ]}
                       onPress={() => setSelectedWalletId(w.id)}
@@ -377,6 +436,7 @@ export default function GoalsScreen() {
                       <Text
                         style={[
                           styles.walletChipText,
+                          { color: colors.textMain },
                           selectedWalletId === w.id && { color: "#FFF" },
                         ]}
                       >
@@ -387,10 +447,20 @@ export default function GoalsScreen() {
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nominal (Rp)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nominal (Rp)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="0"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   value={actionAmount}
                   onChangeText={setActionAmount}
@@ -421,7 +491,7 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -430,14 +500,12 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   backButton: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { padding: 20 },
   goalCard: {
-    backgroundColor: colors.card,
     padding: 18,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: 16,
   },
   goalHeader: {
@@ -454,11 +522,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  goalName: { fontSize: 16, fontWeight: "bold", color: colors.textMain },
-  goalSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  goalName: { fontSize: 16, fontWeight: "bold" },
+  goalSub: { fontSize: 12, marginTop: 2 },
   progressBg: {
     height: 10,
-    backgroundColor: "#E0E0E0",
     borderRadius: 5,
     overflow: "hidden",
     marginBottom: 10,
@@ -469,8 +536,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 14,
   },
-  currentAmount: { fontSize: 15, fontWeight: "bold", color: colors.primary },
-  targetAmount: { fontSize: 13, color: colors.textMuted },
+  currentAmount: { fontSize: 15, fontWeight: "bold" },
+  targetAmount: { fontSize: 13 },
   actionRow: { flexDirection: "row", gap: 10 },
   btnAction: {
     flex: 1,
@@ -490,19 +557,16 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: colors.textMain,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 13,
-    color: colors.textMuted,
     textAlign: "center",
     marginTop: 6,
     marginBottom: 20,
     paddingHorizontal: 20,
   },
   createBtnBtn: {
-    backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -514,7 +578,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -525,43 +588,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
     paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   inputGroup: { marginBottom: 16 },
   label: {
     fontSize: 13,
-    color: colors.textMuted,
     marginBottom: 8,
     fontWeight: "600",
   },
   input: {
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 15,
-    color: colors.textMain,
   },
   walletChip: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
     marginRight: 8,
-    backgroundColor: "#FAFAFA",
   },
   walletChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: "#43A047",
+    borderColor: "#43A047",
   },
-  walletChipText: { fontSize: 13, color: colors.textMain, fontWeight: "600" },
+  walletChipText: { fontSize: 13, fontWeight: "600" },
   saveBtn: {
-    backgroundColor: colors.primary,
     height: 50,
     borderRadius: 12,
     alignItems: "center",

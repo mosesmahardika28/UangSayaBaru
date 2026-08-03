@@ -2,12 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   FlatList,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -33,8 +33,7 @@ const monthsNames = [
 
 export default function StatistikScreen() {
   const router = useRouter();
-  const { transactions, categories, monthlyBudget, setMonthlyBudget } =
-    useTransactions();
+  const { transactions, categories, budget } = useTransactions(); // Ambil budget otomatis
   const { colors, theme } = useTheme();
   const isDarkMode = theme === "dark";
 
@@ -45,8 +44,8 @@ export default function StatistikScreen() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
-  const [inputBudget, setInputBudget] = useState(monthlyBudget.toString());
+  // Ambil total anggaran global dari state budget (Bottom-Up)
+  const currentBudgetAmount = budget.amount;
 
   const categoryIcons: {
     [key: string]: { icon: string; color: string; bg: string };
@@ -78,8 +77,8 @@ export default function StatistikScreen() {
     0,
   );
   const budgetPercentage =
-    monthlyBudget > 0
-      ? Math.min(Math.round((totalExpense / monthlyBudget) * 100), 100)
+    currentBudgetAmount > 0
+      ? Math.min(Math.round((totalExpense / currentBudgetAmount) * 100), 100)
       : 0;
 
   const categoryMap: { [key: string]: number } = {};
@@ -111,13 +110,6 @@ export default function StatistikScreen() {
 
   const formatRp = (angka: number) => {
     return "Rp " + angka.toLocaleString("id-ID");
-  };
-
-  const handleSaveBudget = () => {
-    const parsed = parseInt(inputBudget.replace(/[^0-9]/g, "")) || 0;
-    setMonthlyBudget(parsed);
-    setBudgetModalVisible(false);
-    alert("Target anggaran berhasil diperbarui!");
   };
 
   const displayText =
@@ -204,24 +196,31 @@ export default function StatistikScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Kartu Target Anggaran */}
+        {/* Kartu Target Anggaran (Otomatis) */}
         <View style={[styles.budgetCard, { backgroundColor: colors.primary }]}>
           <View style={styles.budgetHeader}>
             <View>
-              <Text style={styles.budgetLabel}>
-                Target Anggaran (
-                {selectedMonth === "all" ? "Tahunan" : "Bulan Ini"})
+              <Text style={styles.budgetLabel}>Total Anggaran (Otomatis)</Text>
+              <Text style={styles.budgetAmount}>
+                {formatRp(currentBudgetAmount)}
               </Text>
-              <Text style={styles.budgetAmount}>{formatRp(monthlyBudget)}</Text>
             </View>
+            {/* Mengubah Ikon Edit menjadi Ikon Info */}
             <TouchableOpacity
               style={styles.editBudgetBtn}
               onPress={() => {
-                setInputBudget(monthlyBudget.toString());
-                setBudgetModalVisible(true);
+                Alert.alert(
+                  "Informasi Anggaran",
+                  "Total anggaran ini dihitung secara otomatis dari gabungan seluruh batas anggaran kategori pengeluaran Anda.\n\nUntuk mengubahnya, silakan atur nominal di menu Kategori.",
+                  [{ text: "Mengerti" }],
+                );
               }}
             >
-              <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color="#FFFFFF"
+              />
             </TouchableOpacity>
           </View>
 
@@ -235,7 +234,10 @@ export default function StatistikScreen() {
             <Text
               style={[
                 styles.budgetSpentText,
-                { color: totalExpense > monthlyBudget ? "#FFCDD2" : "#FFFFFF" },
+                {
+                  color:
+                    totalExpense > currentBudgetAmount ? "#FFCDD2" : "#FFFFFF",
+                },
               ]}
             >
               {budgetPercentage}%
@@ -249,7 +251,7 @@ export default function StatistikScreen() {
                 {
                   width: `${budgetPercentage}%`,
                   backgroundColor:
-                    totalExpense > monthlyBudget ? "#FF5252" : "#FFFFFF",
+                    totalExpense > currentBudgetAmount ? "#FF5252" : "#FFFFFF",
                 },
               ]}
             />
@@ -388,7 +390,7 @@ export default function StatistikScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Modal Pilihan Periode */}
+      {/* Modal Pilihan Periode Bulan */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -451,62 +453,6 @@ export default function StatistikScreen() {
                 </TouchableOpacity>
               )}
             />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal Atur Target Anggaran */}
-      <Modal
-        visible={budgetModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setBudgetModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setBudgetModalVisible(false)}
-        >
-          <View
-            style={[styles.modalContent, { backgroundColor: colors.card }]}
-            onStartShouldSetResponder={() => true}
-          >
-            <View
-              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
-            >
-              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
-                Atur Target Anggaran
-              </Text>
-              <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMain} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textMuted }]}>
-                Batas Maksimal Pengeluaran (Rp)
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                    color: colors.textMain,
-                  },
-                ]}
-                value={inputBudget}
-                onChangeText={setInputBudget}
-                keyboardType="numeric"
-                placeholder="Contoh: 1500000"
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
-            <TouchableOpacity
-              style={[styles.saveButton, { backgroundColor: colors.primary }]}
-              onPress={handleSaveBudget}
-            >
-              <Text style={styles.saveButtonText}>Simpan Anggaran</Text>
-            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -718,25 +664,4 @@ const styles = StyleSheet.create({
   },
   modalItemText: { fontSize: 16 },
   modalItemTextActive: { fontWeight: "bold" },
-  inputGroup: { marginBottom: 16 },
-  label: {
-    fontSize: 14,
-    marginBottom: 6,
-    fontWeight: "500",
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    fontSize: 15,
-  },
-  saveButton: {
-    borderRadius: 12,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  saveButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
 });

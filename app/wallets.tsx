@@ -14,21 +14,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { useTransactions } from "../context/TransactionContext";
-
-const colors = {
-  background: "#FAFAFA",
-  card: "#FFFFFF",
-  textMain: "#212121",
-  textMuted: "#757575",
-  primary: "#43A047",
-  border: "#EEEEEE",
-  danger: "#E53935",
-};
 
 export default function WalletsScreen() {
   const router = useRouter();
   const { wallets, addWallet, updateWallet, deleteWallet } = useTransactions();
+  const { colors, theme } = useTheme();
+  const isDarkMode = theme === "dark";
 
   // State untuk Modal Form Dompet
   const [isModalVisible, setModalVisible] = useState(false);
@@ -113,28 +106,37 @@ export default function WalletsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Kelola Dompet</Text>
+        <Text style={[styles.headerTitle, { color: colors.textMain }]}>
+          Kelola Dompet
+        </Text>
         <View style={{ width: 32 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
         {/* Kartu Total Saldo */}
-        <View style={styles.totalCard}>
+        <View style={[styles.totalCard, { backgroundColor: colors.primary }]}>
           <Text style={styles.totalLabel}>Total Saldo Gabungan</Text>
           <Text style={styles.totalAmount}>{formatRp(totalAllWallets)}</Text>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Daftar Dompet Anda</Text>
-          <TouchableOpacity onPress={openAddModal} style={styles.addBtnSmall}>
+          <Text style={[styles.sectionTitle, { color: colors.textMain }]}>
+            Daftar Dompet Anda
+          </Text>
+          <TouchableOpacity
+            onPress={openAddModal}
+            style={[styles.addBtnSmall, { backgroundColor: colors.primary }]}
+          >
             <Ionicons name="add" size={16} color="#FFFFFF" />
             <Text style={styles.addBtnSmallText}>Baru</Text>
           </TouchableOpacity>
@@ -143,7 +145,10 @@ export default function WalletsScreen() {
         {wallets.map((item) => (
           <TouchableOpacity
             key={item.id}
-            style={styles.walletCard}
+            style={[
+              styles.walletCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
             onPress={() => openEditModal(item)}
             activeOpacity={0.7}
           >
@@ -151,17 +156,27 @@ export default function WalletsScreen() {
               style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
             >
               <View
-                style={[styles.iconBg, { backgroundColor: item.color + "20" }]}
+                style={[
+                  styles.iconBg,
+                  {
+                    backgroundColor:
+                      item.color !== undefined
+                        ? item.color + "20"
+                        : colors.primary + "20",
+                  },
+                ]}
               >
                 <Ionicons
                   name={item.icon as any}
                   size={22}
-                  color={item.color}
+                  color={item.color || colors.primary}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.walletName}>{item.name}</Text>
-                <Text style={styles.walletBalance}>
+                <Text style={[styles.walletName, { color: colors.textMain }]}>
+                  {item.name}
+                </Text>
+                <Text style={[styles.walletBalance, { color: colors.primary }]}>
                   {formatRp(item.balance || 0)}
                 </Text>
               </View>
@@ -170,7 +185,7 @@ export default function WalletsScreen() {
           </TouchableOpacity>
         ))}
 
-        <Text style={styles.hintText}>
+        <Text style={[styles.hintText, { color: colors.textMuted }]}>
           Ketuk dompet pada daftar di atas untuk mengubah nama, saldo awal, atau
           menghapusnya.
         </Text>
@@ -193,11 +208,22 @@ export default function WalletsScreen() {
             onPress={() => setModalVisible(false)}
           >
             <View
-              style={styles.modalContent}
+              style={[
+                styles.modalContent,
+                {
+                  backgroundColor: colors.card,
+                  borderTopColor: colors.border,
+                },
+              ]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: colors.textMain }]}>
                   {modalMode === "add" ? "Tambah Dompet" : "Edit Dompet"}
                 </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -206,31 +232,54 @@ export default function WalletsScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nama Dompet</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nama Dompet
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="Contoh: OVO, Rekening Mandiri..."
+                  placeholderTextColor={colors.textMuted}
                   value={walletName}
                   onChangeText={setWalletName}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Saldo Awal (Rp)</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Saldo Awal (Rp)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
                   placeholder="0"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   value={walletBalance}
                   onChangeText={setWalletBalance}
                 />
-                <Text style={styles.helperText}>
+                <Text style={[styles.helperText, { color: colors.textMuted }]}>
                   Isi saldo awal jika dompet ini sudah memiliki uang sebelum
                   Anda mencatat transaksi.
                 </Text>
               </View>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <TouchableOpacity
+                style={[styles.saveButton, { backgroundColor: colors.primary }]}
+                onPress={handleSave}
+              >
                 <Text style={styles.saveButtonText}>Simpan Dompet</Text>
               </TouchableOpacity>
 
@@ -245,7 +294,11 @@ export default function WalletsScreen() {
                     color={colors.danger}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.deleteButtonText}>Hapus Dompet</Text>
+                  <Text
+                    style={[styles.deleteButtonText, { color: colors.danger }]}
+                  >
+                    Hapus Dompet
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -257,7 +310,7 @@ export default function WalletsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -266,10 +319,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   backButton: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   container: { padding: 20 },
   totalCard: {
-    backgroundColor: colors.primary,
     padding: 20,
     borderRadius: 16,
     marginBottom: 24,
@@ -282,11 +334,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 16, fontWeight: "bold", color: colors.textMain },
+  sectionTitle: { fontSize: 16, fontWeight: "bold" },
   addBtnSmall: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -298,12 +349,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   walletCard: {
-    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -319,13 +368,11 @@ const styles = StyleSheet.create({
   walletName: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.textMain,
     marginBottom: 2,
   },
-  walletBalance: { fontSize: 15, fontWeight: "bold", color: colors.primary },
+  walletBalance: { fontSize: 15, fontWeight: "bold" },
   hintText: {
     fontSize: 12,
-    color: colors.textMuted,
     textAlign: "center",
     marginTop: 10,
     paddingHorizontal: 20,
@@ -338,7 +385,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -350,30 +396,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
     paddingBottom: 15,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: colors.textMain },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
   inputGroup: { marginBottom: 16 },
   label: {
     fontSize: 14,
-    color: colors.textMuted,
     marginBottom: 6,
     fontWeight: "500",
   },
   input: {
-    backgroundColor: "#FAFAFA",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
     fontSize: 15,
-    color: colors.textMain,
   },
-  helperText: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
+  helperText: { fontSize: 12, marginTop: 4 },
   saveButton: {
-    backgroundColor: colors.primary,
     borderRadius: 12,
     height: 52,
     alignItems: "center",
@@ -388,5 +428,5 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 12,
   },
-  deleteButtonText: { color: colors.danger, fontSize: 15, fontWeight: "600" },
+  deleteButtonText: { fontSize: 15, fontWeight: "600" },
 });

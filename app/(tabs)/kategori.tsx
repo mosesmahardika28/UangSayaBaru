@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -20,6 +20,12 @@ import {
 
 export default function KategoriScreen() {
   const router = useRouter();
+  // SESUDAH:
+  const params = useLocalSearchParams<{
+    type?: "expense" | "income";
+    openAdd?: string;
+    actionId?: string; // <-- Tambahkan ini agar TypeScript tidak error
+  }>();
   const {
     categories,
     transactions,
@@ -39,12 +45,34 @@ export default function KategoriScreen() {
   );
   const [name, setName] = useState("");
   const [type, setType] = useState<"expense" | "income">("expense");
-  const [budget, setBudget] = useState("");
+  const [budgetVal, setBudgetVal] = useState("");
   const [budgetPeriod, setBudgetPeriod] = useState<
     "weekly" | "monthly" | "custom"
   >("monthly");
   const [budgetDuration, setBudgetDuration] = useState("3");
   const [selectedColor, setSelectedColor] = useState("#0097A7");
+
+  // EFFECT UNTUK MENANGKAP PARAMETER DARI HALAMAN ADD TRANSACTION
+  useEffect(() => {
+    if (params.type === "expense" || params.type === "income") {
+      setActiveTab(params.type);
+      setType(params.type);
+    }
+
+    if (params.openAdd === "true") {
+      const timer = setTimeout(() => {
+        setEditingCategory(null);
+        setName("");
+        setBudgetVal("");
+        setBudgetPeriod("monthly");
+        setBudgetDuration("3");
+        setSelectedColor("#0097A7");
+        setIsModalVisible(true);
+      }, 150);
+
+      return () => clearTimeout(timer);
+    }
+  }, [params.actionId]); // Hanya terpicu ketika actionId unik ini berubah
 
   const colorOptions = [
     "#0097A7",
@@ -114,8 +142,8 @@ export default function KategoriScreen() {
   const handleOpenAddModal = () => {
     setEditingCategory(null);
     setName("");
-    setType(activeTab);
-    setBudget("");
+    setType(activeTab); // Otomatis menyesuaikan dengan tab yang sedang aktif
+    setBudgetVal("");
     setBudgetPeriod("monthly");
     setBudgetDuration("3");
     setSelectedColor("#0097A7");
@@ -126,7 +154,7 @@ export default function KategoriScreen() {
     setEditingCategory(cat);
     setName(cat.name);
     setType(cat.type);
-    setBudget(cat.budget ? cat.budget.toString() : "");
+    setBudgetVal(cat.budget ? cat.budget.toString() : "");
     setBudgetPeriod((cat as any).budgetPeriod || "monthly");
     setBudgetDuration(
       (cat as any).budgetDuration
@@ -144,8 +172,8 @@ export default function KategoriScreen() {
     }
 
     const parsedBudget =
-      type === "expense" && budget
-        ? parseFloat(budget.replace(/[^0-9]/g, "")) || 0
+      type === "expense" && budgetVal
+        ? parseFloat(budgetVal.replace(/[^0-9]/g, "")) || 0
         : undefined;
 
     const parsedDuration =
@@ -159,7 +187,7 @@ export default function KategoriScreen() {
         type,
         color: selectedColor,
         bg: selectedColor + "20",
-        budget: parsedBudget,
+        budget: type === "expense" ? parsedBudget : undefined,
         budgetPeriod: type === "expense" ? budgetPeriod : undefined,
         budgetDuration: parsedDuration,
       } as any);
@@ -170,7 +198,7 @@ export default function KategoriScreen() {
         icon: type === "expense" ? "cart-outline" : "wallet-outline",
         color: selectedColor,
         bg: selectedColor + "20",
-        budget: parsedBudget,
+        budget: type === "expense" ? parsedBudget : undefined,
         budgetPeriod: type === "expense" ? budgetPeriod : undefined,
         budgetDuration: parsedDuration,
       } as any);
@@ -520,8 +548,8 @@ export default function KategoriScreen() {
                     placeholder="Contoh: 500000"
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
-                    value={budget}
-                    onChangeText={setBudget}
+                    value={budgetVal}
+                    onChangeText={setBudgetVal}
                   />
                 </View>
 
