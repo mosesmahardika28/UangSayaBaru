@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GENERIC_ICONS } from "../../constants/icons"; // Pastikan path ini sesuai
 import { useTheme } from "../../context/ThemeContext";
 import {
   CategoryItem,
@@ -20,26 +21,20 @@ import {
 
 export default function KategoriScreen() {
   const router = useRouter();
-  // SESUDAH:
   const params = useLocalSearchParams<{
     type?: "expense" | "income";
     openAdd?: string;
-    actionId?: string; // <-- Tambahkan ini agar TypeScript tidak error
+    actionId?: string;
   }>();
-  const {
-    categories,
-    transactions,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-  } = useTransactions();
+  const { categories, transactions, updateCategory, deleteCategory } =
+    useTransactions();
   const { colors, theme } = useTheme();
   const isDarkMode = theme === "dark";
 
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false); // Hanya digunakan untuk Edit sekarang
 
-  // State Form & Mode Edit
+  // State Form Mode Edit
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(
     null,
   );
@@ -51,6 +46,8 @@ export default function KategoriScreen() {
   >("monthly");
   const [budgetDuration, setBudgetDuration] = useState("3");
   const [selectedColor, setSelectedColor] = useState("#0097A7");
+  const [selectedIcon, setSelectedIcon] = useState("cart-outline");
+  const [isIconModalVisible, setIsIconModalVisible] = useState(false);
 
   // EFFECT UNTUK MENANGKAP PARAMETER DARI HALAMAN ADD TRANSACTION
   useEffect(() => {
@@ -60,19 +57,13 @@ export default function KategoriScreen() {
     }
 
     if (params.openAdd === "true") {
-      const timer = setTimeout(() => {
-        setEditingCategory(null);
-        setName("");
-        setBudgetVal("");
-        setBudgetPeriod("monthly");
-        setBudgetDuration("3");
-        setSelectedColor("#0097A7");
-        setIsModalVisible(true);
-      }, 150);
-
-      return () => clearTimeout(timer);
+      // Jika dari add transaction diarahkan untuk tambah kategori, langsung arahkan ke halaman add-category
+      router.push({
+        pathname: "/add-category" as any,
+        params: { type: params.type || "expense" },
+      });
     }
-  }, [params.actionId]); // Hanya terpicu ketika actionId unik ini berubah
+  }, [params.actionId]);
 
   const colorOptions = [
     "#0097A7",
@@ -95,7 +86,6 @@ export default function KategoriScreen() {
 
   const filteredCategories = categories.filter((c) => c.type === activeTab);
 
-  // Fungsi untuk mengecek apakah transaksi masuk dalam periode anggaran kategori
   const isTransactionInPeriod = (
     txDate: string,
     period?: string,
@@ -114,7 +104,6 @@ export default function KategoriScreen() {
       end.setMonth(end.getMonth() + durationMonths);
       return tDate >= start && tDate <= end;
     } else {
-      // Default Monthly
       return (
         tDate.getMonth() === now.getMonth() &&
         tDate.getFullYear() === now.getFullYear()
@@ -122,7 +111,6 @@ export default function KategoriScreen() {
     }
   };
 
-  // Menghitung total terpakai untuk kategori tertentu
   const calculateSpent = (
     catName: string,
     period?: string,
@@ -139,15 +127,12 @@ export default function KategoriScreen() {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  const handleOpenAddModal = () => {
-    setEditingCategory(null);
-    setName("");
-    setType(activeTab); // Otomatis menyesuaikan dengan tab yang sedang aktif
-    setBudgetVal("");
-    setBudgetPeriod("monthly");
-    setBudgetDuration("3");
-    setSelectedColor("#0097A7");
-    setIsModalVisible(true);
+  // TOMBOL TAMBAH DI KANAN ATAS SEKARANG MENGARAH KE FILE add-category.tsx
+  const handleOpenAddScreen = () => {
+    router.push({
+      pathname: "/add-category" as any,
+      params: { type: activeTab },
+    });
   };
 
   const handleOpenEditModal = (cat: CategoryItem) => {
@@ -162,10 +147,12 @@ export default function KategoriScreen() {
         : "3",
     );
     setSelectedColor(cat.color || "#0097A7");
+    setSelectedIcon(cat.icon || "cart-outline");
     setIsModalVisible(true);
   };
 
-  const handleSaveCategory = () => {
+  // Fungsi simpan khusus untuk Edit Kategori via Modal
+  const handleSaveEditCategory = () => {
     if (!name.trim()) {
       Alert.alert("Perhatian", "Nama kategori tidak boleh kosong!");
       return;
@@ -185,17 +172,7 @@ export default function KategoriScreen() {
       updateCategory(editingCategory.id, {
         name: name.trim(),
         type,
-        color: selectedColor,
-        bg: selectedColor + "20",
-        budget: type === "expense" ? parsedBudget : undefined,
-        budgetPeriod: type === "expense" ? budgetPeriod : undefined,
-        budgetDuration: parsedDuration,
-      } as any);
-    } else {
-      addCategory({
-        name: name.trim(),
-        type,
-        icon: type === "expense" ? "cart-outline" : "wallet-outline",
+        icon: selectedIcon,
         color: selectedColor,
         bg: selectedColor + "20",
         budget: type === "expense" ? parsedBudget : undefined,
@@ -243,7 +220,7 @@ export default function KategoriScreen() {
         </Text>
         <TouchableOpacity
           style={[styles.addBtn, { backgroundColor: colors.primary }]}
-          onPress={handleOpenAddModal}
+          onPress={handleOpenAddScreen}
         >
           <Ionicons name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -320,7 +297,7 @@ export default function KategoriScreen() {
                 onPress={() => {
                   if (cat.type === "expense") {
                     router.push({
-                      pathname: "/category-budget-detail",
+                      pathname: "/category-budget-detail" as any,
                       params: {
                         categoryName: cat.name,
                         budget: budgetAmt.toString(),
@@ -438,7 +415,7 @@ export default function KategoriScreen() {
         <View style={{ height: 80 }} />
       </ScrollView>
 
-      {/* Modal Tambah / Edit Kategori */}
+      {/* MODAL KHUSUS EDIT KATEGORI */}
       <Modal visible={isModalVisible} transparent animationType="slide">
         <TouchableOpacity
           style={styles.modalOverlay}
@@ -453,199 +430,132 @@ export default function KategoriScreen() {
               style={[styles.modalHeader, { borderBottomColor: colors.border }]}
             >
               <Text style={[styles.modalTitle, { color: colors.textMain }]}>
-                {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+                Edit Kategori
               </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMain} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textMuted }]}>
-                Jenis Kategori
-              </Text>
-              <View style={styles.typeRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.typeBtn,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                    },
-                    type === "expense" && styles.typeBtnExpenseActive,
-                  ]}
-                  onPress={() => setType("expense")}
-                >
-                  <Text
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Jenis Kategori
+                </Text>
+                <View style={styles.typeRow}>
+                  <TouchableOpacity
                     style={[
-                      styles.typeText,
-                      { color: colors.textMain },
-                      type === "expense" && { color: "#FFF" },
-                    ]}
-                  >
-                    Pengeluaran
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.typeBtn,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                    },
-                    type === "income" && styles.typeBtnIncomeActive,
-                  ]}
-                  onPress={() => setType("income")}
-                >
-                  <Text
-                    style={[
-                      styles.typeText,
-                      { color: colors.textMain },
-                      type === "income" && { color: "#FFF" },
-                    ]}
-                  >
-                    Pemasukan
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textMuted }]}>
-                Nama Kategori
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                    color: colors.textMain,
-                  },
-                ]}
-                placeholder="Contoh: Hiburan, Tagihan"
-                placeholderTextColor={colors.textMuted}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            {type === "expense" && (
-              <>
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: colors.textMuted }]}>
-                    Batas Anggaran
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
+                      styles.typeBtn,
                       {
                         backgroundColor: colors.background,
                         borderColor: colors.border,
-                        color: colors.textMain,
                       },
+                      type === "expense" && styles.typeBtnExpenseActive,
                     ]}
-                    placeholder="Contoh: 500000"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="numeric"
-                    value={budgetVal}
-                    onChangeText={setBudgetVal}
-                  />
+                    onPress={() => setType("expense")}
+                  >
+                    <Text
+                      style={[
+                        styles.typeText,
+                        { color: colors.textMain },
+                        type === "expense" && { color: "#FFF" },
+                      ]}
+                    >
+                      Pengeluaran
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeBtn,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                      },
+                      type === "income" && styles.typeBtnIncomeActive,
+                    ]}
+                    onPress={() => setType("income")}
+                  >
+                    <Text
+                      style={[
+                        styles.typeText,
+                        { color: colors.textMain },
+                        type === "income" && { color: "#FFF" },
+                      ]}
+                    >
+                      Pemasukan
+                    </Text>
+                  </TouchableOpacity>
                 </View>
+              </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: colors.textMuted }]}>
-                    Periode Anggaran
-                  </Text>
-                  <View style={styles.periodRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.periodBtn,
-                        {
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                        },
-                        budgetPeriod === "weekly" && {
-                          borderColor: colors.primary,
-                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
-                        },
-                      ]}
-                      onPress={() => setBudgetPeriod("weekly")}
-                    >
-                      <Text
-                        style={[
-                          styles.periodText,
-                          { color: colors.textMuted },
-                          budgetPeriod === "weekly" && {
-                            color: colors.primary,
-                            fontWeight: "bold",
-                          },
-                        ]}
-                      >
-                        Mingguan
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.periodBtn,
-                        {
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                        },
-                        budgetPeriod === "monthly" && {
-                          borderColor: colors.primary,
-                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
-                        },
-                      ]}
-                      onPress={() => setBudgetPeriod("monthly")}
-                    >
-                      <Text
-                        style={[
-                          styles.periodText,
-                          { color: colors.textMuted },
-                          budgetPeriod === "monthly" && {
-                            color: colors.primary,
-                            fontWeight: "bold",
-                          },
-                        ]}
-                      >
-                        Bulanan
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.periodBtn,
-                        {
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                        },
-                        budgetPeriod === "custom" && {
-                          borderColor: colors.primary,
-                          backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
-                        },
-                      ]}
-                      onPress={() => setBudgetPeriod("custom")}
-                    >
-                      <Text
-                        style={[
-                          styles.periodText,
-                          { color: colors.textMuted },
-                          budgetPeriod === "custom" && {
-                            color: colors.primary,
-                            fontWeight: "bold",
-                          },
-                        ]}
-                      >
-                        Kustom
-                      </Text>
-                    </TouchableOpacity>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Nama Kategori
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.textMain,
+                    },
+                  ]}
+                  placeholder="Contoh: Hiburan, Tagihan"
+                  placeholderTextColor={colors.textMuted}
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              {/* Pilihan Ikon */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Ikon Kategori
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.iconPickerSelector,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => setIsIconModalVisible(true)}
+                >
+                  <View
+                    style={[
+                      styles.previewIconBox,
+                      { backgroundColor: selectedColor + "20" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={selectedIcon as any}
+                      size={22}
+                      color={selectedColor}
+                    />
                   </View>
-                </View>
+                  <Text
+                    style={[
+                      styles.iconSelectorText,
+                      { color: colors.textMain },
+                    ]}
+                  >
+                    Ketuk untuk mengubah ikon
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
 
-                {budgetPeriod === "custom" && (
+              {type === "expense" && (
+                <>
                   <View style={styles.inputGroup}>
                     <Text style={[styles.label, { color: colors.textMuted }]}>
-                      Durasi (Jumlah Bulan)
+                      Batas Anggaran
                     </Text>
                     <TextInput
                       style={[
@@ -656,55 +566,242 @@ export default function KategoriScreen() {
                           color: colors.textMain,
                         },
                       ]}
-                      placeholder="Contoh: 3 atau 6 bulan"
+                      placeholder="Contoh: 500000"
                       placeholderTextColor={colors.textMuted}
                       keyboardType="numeric"
-                      value={budgetDuration}
-                      onChangeText={setBudgetDuration}
+                      value={budgetVal}
+                      onChangeText={setBudgetVal}
                     />
                   </View>
-                )}
-              </>
-            )}
 
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textMuted }]}>
-                Pilih Warna Tema
-              </Text>
-              <View style={styles.colorGrid}>
-                {colorOptions.map((col) => {
-                  const isSelected = selectedColor === col;
-                  return (
-                    <TouchableOpacity
-                      key={col}
-                      style={[
-                        styles.colorCircle,
-                        { backgroundColor: col },
-                        isSelected && [
-                          styles.colorCircleActive,
-                          { borderColor: colors.textMain },
-                        ],
-                      ]}
-                      onPress={() => setSelectedColor(col)}
-                      activeOpacity={0.8}
-                    >
-                      {isSelected && (
-                        <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>
+                      Periode Anggaran
+                    </Text>
+                    <View style={styles.periodRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.periodBtn,
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                          },
+                          budgetPeriod === "weekly" && {
+                            borderColor: colors.primary,
+                            backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                          },
+                        ]}
+                        onPress={() => setBudgetPeriod("weekly")}
+                      >
+                        <Text
+                          style={[
+                            styles.periodText,
+                            { color: colors.textMuted },
+                            budgetPeriod === "weekly" && {
+                              color: colors.primary,
+                              fontWeight: "bold",
+                            },
+                          ]}
+                        >
+                          Mingguan
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.periodBtn,
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                          },
+                          budgetPeriod === "monthly" && {
+                            borderColor: colors.primary,
+                            backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                          },
+                        ]}
+                        onPress={() => setBudgetPeriod("monthly")}
+                      >
+                        <Text
+                          style={[
+                            styles.periodText,
+                            { color: colors.textMuted },
+                            budgetPeriod === "monthly" && {
+                              color: colors.primary,
+                              fontWeight: "bold",
+                            },
+                          ]}
+                        >
+                          Bulanan
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.periodBtn,
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                          },
+                          budgetPeriod === "custom" && {
+                            borderColor: colors.primary,
+                            backgroundColor: isDarkMode ? "#1B3E2B" : "#E8F5E9",
+                          },
+                        ]}
+                        onPress={() => setBudgetPeriod("custom")}
+                      >
+                        <Text
+                          style={[
+                            styles.periodText,
+                            { color: colors.textMuted },
+                            budgetPeriod === "custom" && {
+                              color: colors.primary,
+                              fontWeight: "bold",
+                            },
+                          ]}
+                        >
+                          Kustom
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {budgetPeriod === "custom" && (
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: colors.textMuted }]}>
+                        Durasi (Jumlah Bulan)
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                            color: colors.textMain,
+                          },
+                        ]}
+                        placeholder="Contoh: 3 atau 6 bulan"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="numeric"
+                        value={budgetDuration}
+                        onChangeText={setBudgetDuration}
+                      />
+                    </View>
+                  )}
+                </>
+              )}
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Pilih Warna Tema
+                </Text>
+                <View style={styles.colorGrid}>
+                  {colorOptions.map((col) => {
+                    const isSelected = selectedColor === col;
+                    return (
+                      <TouchableOpacity
+                        key={col}
+                        style={[
+                          styles.colorCircle,
+                          { backgroundColor: col },
+                          isSelected && [
+                            styles.colorCircleActive,
+                            { borderColor: colors.textMain },
+                          ],
+                        ]}
+                        onPress={() => setSelectedColor(col)}
+                        activeOpacity={0.8}
+                      >
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark"
+                            size={16}
+                            color="#FFFFFF"
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
+
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+                onPress={handleSaveEditCategory}
+              >
+                <Text style={styles.saveBtnText}>Simpan Perubahan</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Pilih Ikon (Untuk Edit) */}
+      <Modal visible={isIconModalVisible} transparent animationType="slide">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsIconModalVisible(false)}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.card, maxHeight: "75%" },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                Pilih Ikon Kategori
+              </Text>
+              <TouchableOpacity onPress={() => setIsIconModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMain} />
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: colors.primary }]}
-              onPress={handleSaveCategory}
-            >
-              <Text style={styles.saveBtnText}>
-                {editingCategory ? "Simpan Perubahan" : "Simpan Kategori"}
-              </Text>
-            </TouchableOpacity>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {GENERIC_ICONS.map((group, index) => (
+                <View key={index} style={styles.groupContainer}>
+                  <Text
+                    style={[styles.groupTitle, { color: colors.textMuted }]}
+                  >
+                    {group.category}
+                  </Text>
+                  <View style={styles.iconGrid}>
+                    {group.icons.map((iconName) => {
+                      const isSelected = selectedIcon === iconName;
+                      return (
+                        <TouchableOpacity
+                          key={iconName}
+                          style={[
+                            styles.iconBox,
+                            {
+                              backgroundColor: colors.background,
+                              borderColor: colors.border,
+                            },
+                            isSelected && {
+                              borderColor: colors.primary,
+                              backgroundColor: colors.primary + "20",
+                            },
+                          ]}
+                          onPress={() => {
+                            setSelectedIcon(iconName);
+                            setIsIconModalVisible(false);
+                          }}
+                        >
+                          <Ionicons
+                            name={iconName as any}
+                            size={22}
+                            color={
+                              isSelected ? colors.primary : colors.textMain
+                            }
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -870,4 +967,29 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveBtnText: { color: "#FFF", fontSize: 15, fontWeight: "bold" },
+  iconPickerSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  previewIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  iconSelectorText: { flex: 1, fontSize: 14, fontWeight: "500" },
+  groupContainer: { marginBottom: 16 },
+  groupTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  iconGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 });

@@ -6,8 +6,18 @@
     "scheme": "uangsaya",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/images/icon.png",
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "imageWidth": 150,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
     ],
     "extra": {
       "eas": {
@@ -15,7 +25,11 @@
       }
     },
     "android": {
-      "package": "com.mosesmahardika.UangSaya"
+      "package": "com.mosesmahardika.UangSaya",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0097A7"
+      }
     }
   }
 }

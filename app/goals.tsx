@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GENERIC_ICONS } from "../constants/icons"; // Pastikan path ini benar
 import { useTheme } from "../context/ThemeContext";
 import { Goal, useTransactions } from "../context/TransactionContext";
 
@@ -31,10 +32,15 @@ export default function GoalsScreen() {
   const { colors, theme } = useTheme();
   const isDarkMode = theme === "dark";
 
+  // State untuk form Buat Target Impian
   const [isAddModalVisible, setAddModalVisible] = useState(false);
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState("trophy-outline");
+  const [selectedColor, setSelectedColor] = useState("#F57C00");
+  const [isIconModalVisible, setIsIconModalVisible] = useState(false);
 
+  // State untuk form Nabung / Cairkan
   const [isActionModalVisible, setActionModalVisible] = useState(false);
   const [actionType, setActionType] = useState<"deposit" | "withdraw">(
     "deposit",
@@ -42,6 +48,23 @@ export default function GoalsScreen() {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [selectedWalletId, setSelectedWalletId] = useState<string>("");
   const [actionAmount, setActionAmount] = useState("");
+
+  const colorOptions = [
+    "#0097A7",
+    "#00838F",
+    "#F57C00",
+    "#EF6C00",
+    "#E91E63",
+    "#C2185B",
+    "#2E7D32",
+    "#1B5E20",
+    "#1E88E5",
+    "#1565C0",
+    "#7B1FA2",
+    "#4A148C",
+    "#D32F2F",
+    "#455A64",
+  ];
 
   const formatRp = (angka: number) => {
     return "Rp " + angka.toLocaleString("id-ID");
@@ -60,14 +83,17 @@ export default function GoalsScreen() {
     }
 
     addGoal({
-      name: goalName,
+      name: goalName.trim(),
       targetAmount: parsedTarget,
-      icon: "trophy-outline",
-      color: colors.primary,
+      icon: selectedIcon, // Menggunakan ikon terpilih
+      color: selectedColor, // Menggunakan warna terpilih
     });
 
+    // Reset Form
     setGoalName("");
     setGoalTarget("");
+    setSelectedIcon("trophy-outline");
+    setSelectedColor("#F57C00");
     setAddModalVisible(false);
   };
 
@@ -189,7 +215,7 @@ export default function GoalsScreen() {
                 activeOpacity={0.8}
                 onPress={() =>
                   router.push({
-                    pathname: "/goal-detail",
+                    pathname: "/goal-detail" as any,
                     params: { id: item.id },
                   })
                 }
@@ -316,7 +342,10 @@ export default function GoalsScreen() {
             onPress={() => setAddModalVisible(false)}
           >
             <View
-              style={[styles.modalContent, { backgroundColor: colors.card }]}
+              style={[
+                styles.modalContent,
+                { backgroundColor: colors.card, maxHeight: "85%" }, // Dibatasi maxHeight
+              ]}
               onStartShouldSetResponder={() => true}
             >
               <View
@@ -332,54 +361,214 @@ export default function GoalsScreen() {
                   <Ionicons name="close" size={24} color={colors.textMain} />
                 </TouchableOpacity>
               </View>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.textMuted }]}>
-                  Nama Target
-                </Text>
-                <TextInput
+
+              {/* Dibungkus ScrollView agar form bisa di-scroll */}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    Nama Target
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.textMain,
+                      },
+                    ]}
+                    placeholder="Contoh: Beli Laptop Baru"
+                    placeholderTextColor={colors.textMuted}
+                    value={goalName}
+                    onChangeText={setGoalName}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    Target Nominal (Rp)
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        color: colors.textMain,
+                      },
+                    ]}
+                    placeholder="Contoh: 10000000"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    value={goalTarget}
+                    onChangeText={setGoalTarget}
+                  />
+                </View>
+
+                {/* Pilih Ikon Goal */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    Ikon Target Impian
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.iconPickerSelector,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => setIsIconModalVisible(true)}
+                  >
+                    <View
+                      style={[
+                        styles.previewIconBox,
+                        { backgroundColor: selectedColor + "20" },
+                      ]}
+                    >
+                      <Ionicons
+                        name={selectedIcon as any}
+                        size={22}
+                        color={selectedColor}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.iconSelectorText,
+                        { color: colors.textMain },
+                      ]}
+                    >
+                      Ketuk untuk mengubah ikon
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Pilih Warna Tema Goal */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    Pilih Warna Tema
+                  </Text>
+                  <View style={styles.colorGrid}>
+                    {colorOptions.map((col) => {
+                      const isSelected = selectedColor === col;
+                      return (
+                        <TouchableOpacity
+                          key={col}
+                          style={[
+                            styles.colorCircle,
+                            { backgroundColor: col },
+                            isSelected && [
+                              styles.colorCircleActive,
+                              { borderColor: colors.textMain },
+                            ],
+                          ]}
+                          onPress={() => setSelectedColor(col)}
+                          activeOpacity={0.8}
+                        >
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color="#FFFFFF"
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <TouchableOpacity
                   style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                      color: colors.textMain,
-                    },
+                    styles.saveBtn,
+                    { backgroundColor: colors.primary, marginBottom: 20 },
                   ]}
-                  placeholder="Contoh: Beli Laptop Baru"
-                  placeholderTextColor={colors.textMuted}
-                  value={goalName}
-                  onChangeText={setGoalName}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.textMuted }]}>
-                  Target Nominal (Rp)
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                      color: colors.textMain,
-                    },
-                  ]}
-                  placeholder="Contoh: 10000000"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numeric"
-                  value={goalTarget}
-                  onChangeText={setGoalTarget}
-                />
-              </View>
-              <TouchableOpacity
-                style={[styles.saveBtn, { backgroundColor: colors.primary }]}
-                onPress={handleCreateGoal}
-              >
-                <Text style={styles.saveBtnText}>Simpan Target</Text>
-              </TouchableOpacity>
+                  onPress={handleCreateGoal}
+                >
+                  <Text style={styles.saveBtnText}>Simpan Target</Text>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
           </TouchableOpacity>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal Pilih Ikon (Lapisan di atas) */}
+      <Modal visible={isIconModalVisible} transparent animationType="slide">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsIconModalVisible(false)}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.card, maxHeight: "75%" },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                Pilih Ikon Target
+              </Text>
+              <TouchableOpacity onPress={() => setIsIconModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMain} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {GENERIC_ICONS.map((group, index) => (
+                <View key={index} style={styles.groupContainer}>
+                  <Text
+                    style={[styles.groupTitle, { color: colors.textMuted }]}
+                  >
+                    {group.category}
+                  </Text>
+                  <View style={styles.iconGrid}>
+                    {group.icons.map((iconName) => {
+                      const isSelected = selectedIcon === iconName;
+                      return (
+                        <TouchableOpacity
+                          key={iconName}
+                          style={[
+                            styles.iconBox,
+                            {
+                              backgroundColor: colors.background,
+                              borderColor: colors.border,
+                            },
+                            isSelected && {
+                              borderColor: colors.primary,
+                              backgroundColor: colors.primary + "20",
+                            },
+                          ]}
+                          onPress={() => {
+                            setSelectedIcon(iconName);
+                            setIsIconModalVisible(false);
+                          }}
+                        >
+                          <Ionicons
+                            name={iconName as any}
+                            size={22}
+                            color={
+                              isSelected ? colors.primary : colors.textMain
+                            }
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Modal Nabung / Cairkan */}
@@ -604,6 +793,61 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: 15,
   },
+
+  // Icon Picker Styles
+  iconPickerSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  previewIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  iconSelectorText: { flex: 1, fontSize: 14, fontWeight: "500" },
+  groupContainer: { marginBottom: 16 },
+  groupTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  iconGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Color Picker Styles
+  colorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  colorCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  colorCircleActive: {
+    borderWidth: 3,
+    transform: [{ scale: 1.12 }],
+  },
+
   walletChip: {
     paddingHorizontal: 16,
     paddingVertical: 10,

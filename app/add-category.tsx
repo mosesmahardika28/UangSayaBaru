@@ -2,15 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GENERIC_ICONS } from "../constants/icons"; // Sesuaikan path jika berbeda
 import { useTheme } from "../context/ThemeContext";
 import { useTransactions } from "../context/TransactionContext";
 
@@ -31,6 +33,12 @@ export default function AddCategoryScreen() {
   >("monthly");
   const [budgetDuration, setBudgetDuration] = useState("3");
   const [selectedColor, setSelectedColor] = useState("#0097A7");
+
+  // State untuk Ikon Terpilih (Default menyesuaikan jenis kategori)
+  const [selectedIcon, setSelectedIcon] = useState(
+    params.type === "income" ? "wallet-outline" : "cart-outline",
+  );
+  const [isIconModalVisible, setIsIconModalVisible] = useState(false);
 
   const colorOptions = [
     "#0097A7",
@@ -68,7 +76,7 @@ export default function AddCategoryScreen() {
     addCategory({
       name: name.trim(),
       type,
-      icon: type === "expense" ? "cart-outline" : "wallet-outline",
+      icon: selectedIcon, // Menyimpan ikon yang dipilih user
       color: selectedColor,
       bg: selectedColor + "20",
       budget: type === "expense" ? parsedBudget : undefined,
@@ -104,6 +112,7 @@ export default function AddCategoryScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
+        {/* Jenis Kategori */}
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textMuted }]}>
             Jenis Kategori
@@ -118,7 +127,10 @@ export default function AddCategoryScreen() {
                 },
                 type === "expense" && styles.typeBtnExpenseActive,
               ]}
-              onPress={() => setType("expense")}
+              onPress={() => {
+                setType("expense");
+                if (!selectedIcon) setSelectedIcon("cart-outline");
+              }}
             >
               <Text
                 style={[
@@ -139,7 +151,10 @@ export default function AddCategoryScreen() {
                 },
                 type === "income" && styles.typeBtnIncomeActive,
               ]}
-              onPress={() => setType("income")}
+              onPress={() => {
+                setType("income");
+                if (!selectedIcon) setSelectedIcon("wallet-outline");
+              }}
             >
               <Text
                 style={[
@@ -154,6 +169,7 @@ export default function AddCategoryScreen() {
           </View>
         </View>
 
+        {/* Nama Kategori */}
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textMuted }]}>
             Nama Kategori
@@ -172,6 +188,41 @@ export default function AddCategoryScreen() {
             value={name}
             onChangeText={setName}
           />
+        </View>
+
+        {/* PILIH IKON (Fitur Baru) */}
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>
+            Ikon Kategori
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.iconPickerSelector,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => setIsIconModalVisible(true)}
+          >
+            <View
+              style={[
+                styles.previewIconBox,
+                { backgroundColor: selectedColor + "20" },
+              ]}
+            >
+              <Ionicons
+                name={selectedIcon as any}
+                size={22}
+                color={selectedColor}
+              />
+            </View>
+            <Text style={[styles.iconSelectorText, { color: colors.textMain }]}>
+              Ketuk untuk mengubah ikon
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
         </View>
 
         {type === "expense" && (
@@ -311,6 +362,7 @@ export default function AddCategoryScreen() {
           </>
         )}
 
+        {/* Pilih Warna Tema */}
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textMuted }]}>
             Pilih Warna Tema
@@ -348,6 +400,76 @@ export default function AddCategoryScreen() {
           <Text style={styles.saveBtnText}>Simpan Kategori</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* MODAL PILIH IKON */}
+      <Modal visible={isIconModalVisible} transparent animationType="slide">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsIconModalVisible(false)}
+        >
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textMain }]}>
+                Pilih Ikon Kategori
+              </Text>
+              <TouchableOpacity onPress={() => setIsIconModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMain} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {GENERIC_ICONS.map((group, index) => (
+                <View key={index} style={styles.groupContainer}>
+                  <Text
+                    style={[styles.groupTitle, { color: colors.textMuted }]}
+                  >
+                    {group.category}
+                  </Text>
+                  <View style={styles.iconGrid}>
+                    {group.icons.map((iconName) => {
+                      const isSelected = selectedIcon === iconName;
+                      return (
+                        <TouchableOpacity
+                          key={iconName}
+                          style={[
+                            styles.iconBox,
+                            {
+                              backgroundColor: colors.background,
+                              borderColor: colors.border,
+                            },
+                            isSelected && {
+                              borderColor: colors.primary,
+                              backgroundColor: colors.primary + "20",
+                            },
+                          ]}
+                          onPress={() => {
+                            setSelectedIcon(iconName);
+                            setIsIconModalVisible(false);
+                          }}
+                        >
+                          <Ionicons
+                            name={iconName as any}
+                            size={22}
+                            color={
+                              isSelected ? colors.primary : colors.textMain
+                            }
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -396,6 +518,59 @@ const styles = StyleSheet.create({
     borderColor: "#43A047",
   },
   typeText: { fontSize: 14, fontWeight: "600" },
+  iconPickerSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  previewIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  iconSelectorText: { flex: 1, fontSize: 14, fontWeight: "500" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "75%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    paddingBottom: 12,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
+  groupContainer: { marginBottom: 16 },
+  groupTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  iconGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   periodRow: { flexDirection: "row", gap: 8 },
   periodBtn: {
     flex: 1,

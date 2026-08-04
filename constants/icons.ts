@@ -1,0 +1,67 @@
+export const GENERIC_ICONS = [
+  {
+    category: "Keuangan & Dompet",
+    icons: [
+      "wallet-outline",
+      "card-outline",
+      "cash-outline",
+      "pie-chart-outline",
+      "trending-up-outline",
+      "stats-chart-outline",
+      "calculator-outline",
+      "receipt-outline",
+    ],
+  },
+  {
+    category: "Belanja & Makanan",
+    icons: [
+      "cart-outline",
+      "basket-outline",
+      "fast-food-outline",
+      "cafe-outline",
+      "shirt-outline",
+      "restaurant-outline",
+      "wine-outline",
+      "storefront-outline",
+    ],
+  },
+  {
+    category: "Gadget & Elektronik",
+    icons: [
+      "laptop-outline",
+      "phone-portrait-outline",
+      "game-controller-outline",
+      "headset-outline",
+      "tv-outline",
+      "watch-outline",
+      "camera-outline",
+      "hardware-chip-outline",
+    ],
+  },
+  {
+    category: "Transportasi & Perjalanan",
+    icons: [
+      "car-outline",
+      "airplane-outline",
+      "bicycle-outline",
+      "bus-outline",
+      "map-outline",
+      "boat-outline",
+      "train-outline",
+      "gas-pump-outline",
+    ],
+  },
+  {
+    category: "Gaya Hidup & Lainnya",
+    icons: [
+      "home-outline",
+      "fitness-outline",
+      "medical-outline",
+      "book-outline",
+      "gift-outline",
+      "school-outline",
+      "construct-outline",
+      "heart-outline",
+    ],
+  },
+];
