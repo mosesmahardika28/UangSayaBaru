@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -13,55 +14,50 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { useTransactions } from "../context/TransactionContext";
 
 export default function ExportScreen() {
   const router = useRouter();
-  const { transactions, wallets } = useTransactions();
   const { colors, theme } = useTheme();
   const isDarkMode = theme === "dark";
 
-  const handleExportCSV = async () => {
+  const handleExportAllData = async () => {
     try {
-      if (transactions.length === 0) {
-        Alert.alert("Perhatian", "Tidak ada transaksi untuk diekspor.");
+      // 1. Ambil semua kunci data yang tersimpan di aplikasi
+      const allKeys = await AsyncStorage.getAllKeys();
+
+      if (allKeys.length === 0) {
+        Alert.alert("Perhatian", "Tidak ada data apa pun untuk diekspor.");
         return;
       }
 
-      // Buat Header CSV yang sesuai dengan struktur pembacaan impor
-      let csvContent = "ID,Tanggal,Tipe,Kategori,Dompet,Nominal,Catatan\n";
+      // 2. Ambil semua pasangan key dan value
+      const allData = await AsyncStorage.multiGet(allKeys);
 
-      transactions.forEach((t) => {
-        const wallet = wallets.find((w) => w.id === t.walletId);
-        const walletName = wallet ? wallet.name : "Dompet";
+      // 3. Ubah menjadi string JSON agar bisa disimpan sebagai file
+      const jsonData = JSON.stringify(allData);
 
-        // Bungkus teks dengan tanda kutip ganda dan escape kutip di dalamnya agar aman dari koma
-        const safeCat = `"${(t.category || "").replace(/"/g, '""')}"`;
-        const safeNote = `"${(t.note || "").replace(/"/g, '""')}"`;
-        const safeWallet = `"${walletName.replace(/"/g, '""')}"`;
-
-        csvContent += `${t.id},${t.date},${t.type},${safeCat},${safeWallet},${t.amount},${safeNote}\n`;
-      });
-
-      const fileName = `keuangan_export_${Date.now()}.csv`;
+      // 4. Siapkan nama file dan lokasi penyimpanan sementara
+      const fileName = `UangSaya_FullBackup_${Date.now()}.json`;
       const fileUri = FileSystem.documentDirectory + fileName;
 
-      await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+      // 5. Tulis file JSON
+      await FileSystem.writeAsStringAsync(fileUri, jsonData, {
         encoding: FileSystem.EncodingType.UTF8,
       });
 
+      // 6. Bagikan / Simpan file
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
-          mimeType: "text/csv",
-          dialogTitle: "Simpan File CSV Keuangan",
+          mimeType: "application/json",
+          dialogTitle: "Simpan Backup UangSaya",
         });
       } else {
-        Alert.alert("Sukses", `File berhasil disimpan di: ${fileUri}`);
+        Alert.alert("Sukses", `File backup berhasil disimpan di: ${fileUri}`);
       }
     } catch (error: any) {
       Alert.alert(
         "Gagal Ekspor",
-        error.message || "Terjadi kesalahan saat membuat file CSV.",
+        error.message || "Terjadi kesalahan saat membuat file backup JSON.",
       );
     }
   };
@@ -75,7 +71,7 @@ export default function ExportScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.textMain} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textMain }]}>
-          Ekspor Data CSV
+          Backup Semua Data
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -95,26 +91,22 @@ export default function ExportScreen() {
               },
             ]}
           >
-            <Ionicons
-              name="document-text-outline"
-              size={24}
-              color={colors.primary}
-            />
+            <Ionicons name="server-outline" size={24} color={colors.primary} />
           </View>
           <View style={{ flex: 1, marginLeft: 14 }}>
             <Text style={[styles.infoTitle, { color: colors.textMain }]}>
-              Ekspor Riwayat ke CSV
+              Ekspor Database (JSON)
             </Text>
             <Text style={[styles.infoSub, { color: colors.textMuted }]}>
-              Simpan seluruh riwayat transaksi Anda ke dalam format file .csv
-              yang kompatibel dan dapat diimpor kembali dengan mudah.
+              Simpan seluruh data aplikasi (saldo, riwayat transaksi, utang, dan
+              goals) ke dalam satu file .json yang aman.
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={[styles.exportButton, { backgroundColor: colors.primary }]}
-          onPress={handleExportCSV}
+          onPress={handleExportAllData}
         >
           <Ionicons
             name="download-outline"
@@ -122,7 +114,7 @@ export default function ExportScreen() {
             color="#FFF"
             style={{ marginRight: 8 }}
           />
-          <Text style={styles.exportButtonText}>Unduh File CSV</Text>
+          <Text style={styles.exportButtonText}>Unduh File Backup</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

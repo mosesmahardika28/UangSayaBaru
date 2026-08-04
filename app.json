@@ -10,12 +10,17 @@
     "plugins": [
       "@react-native-community/datetimepicker",
       [
-        "expo-splash-screen",
+        "react-native-android-widget",
         {
-          "image": "./assets/images/splash.png",
-          "imageWidth": 150,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "widgets": [
+            {
+              "name": "UangSayaWidget",
+              "label": "UangSaya Saldo",
+              "minWidth": "250dp",
+              "minHeight": "100dp",
+              "updatePeriodMillis": 1800000
+            }
+          ]
         }
       ]
     ],
